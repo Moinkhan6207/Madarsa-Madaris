@@ -1,0 +1,21 @@
+# ENV FILES
+.env
+.env.local
+.env.development
+.env.production
+
+# Node
+node_modules/
+
+# Next.js
+.next/
+
+# Logs
+logs/
+*.log
+
+# Uploads
+uploads/
+
+# OS files
+.DS_Store
