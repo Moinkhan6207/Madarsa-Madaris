@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Madarsa SaaS - Idara Management System
 
 A production-ready, multi-tenant SaaS platform for managing Madarsa/Idara institutions.
@@ -145,3 +146,7 @@ NEXT_PUBLIC_API_URL=http://localhost:3001/api/v1
 ## License
 
 ISC
+=======
+# -madarsa-saas
+ Multi-tenant SaaS platform for Madarsa/Idara management
+>>>>>>> d6bbcb8477ef62e9130efc56b91d3f7c8d3165c1
