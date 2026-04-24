@@ -33,7 +33,7 @@ export function Footer() {
                 <Link href="#how-it-works" className="text-gray-500 hover:text-primary-600 transition-colors">How it works</Link>
               </li>
               <li>
-                <Link href="/pricing" className="text-gray-500 hover:text-primary-600 transition-colors">Pricing</Link>
+                <Link href={"/pricing" as any} className="text-gray-500 hover:text-primary-600 transition-colors">Pricing</Link>
               </li>
             </ul>
           </div>
@@ -42,16 +42,16 @@ export function Footer() {
             <h3 className="font-semibold text-gray-900 mb-4 tracking-wider text-sm uppercase">Company</h3>
             <ul className="space-y-3">
               <li>
-                <Link href="/about" className="text-gray-500 hover:text-primary-600 transition-colors">About Us</Link>
+                <Link href={"/about" as any} className="text-gray-500 hover:text-primary-600 transition-colors">About Us</Link>
               </li>
               <li>
-                <Link href="/contact" className="text-gray-500 hover:text-primary-600 transition-colors">Contact</Link>
+                <Link href={"/contact" as any} className="text-gray-500 hover:text-primary-600 transition-colors">Contact</Link>
               </li>
               <li>
-                <Link href="/privacy" className="text-gray-500 hover:text-primary-600 transition-colors">Privacy Policy</Link>
+                <Link href={"/privacy" as any} className="text-gray-500 hover:text-primary-600 transition-colors">Privacy Policy</Link>
               </li>
               <li>
-                <Link href="/terms" className="text-gray-500 hover:text-primary-600 transition-colors">Terms of Service</Link>
+                <Link href={"/terms" as any} className="text-gray-500 hover:text-primary-600 transition-colors">Terms of Service</Link>
               </li>
             </ul>
           </div>

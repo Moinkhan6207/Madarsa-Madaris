@@ -52,9 +52,12 @@ export const logout = () => {
   if (typeof window !== 'undefined') {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    localStorage.removeItem('tenant_id');
     removeCookie('auth_token');
     removeCookie('user_role');
-    window.location.href = '/login';
+    
+    // Redirect to landing page instead of login
+    window.location.href = '/';
   }
 };
 

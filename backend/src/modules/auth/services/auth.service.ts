@@ -80,8 +80,15 @@ export class AuthService {
     emailService.sendTenantCreatedEmail(payload.adminUser.email, payload.displayName);
 
     return {
-      tenantId: result.tenantId,
-      adminUserId: result.adminUserId,
+      user: {
+        id: result.adminUserId,
+        fullName: payload.adminUser.fullName,
+        email: payload.adminUser.email,
+        tenantId: result.tenantId,
+        tenantStatus: 'DRAFT',
+        roles: ['TENANT_OWNER'],
+        permissions: [] // New tenant owners get permissions via their role later
+      },
       token
     };
   }

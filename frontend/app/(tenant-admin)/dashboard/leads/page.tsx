@@ -167,25 +167,32 @@ export default function LeadsDashboard() {
 
              <div className="flex-1 overflow-y-auto p-10 space-y-10">
                 <section>
-                   <h3 className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em] mb-6">Contact Information</h3>
-                   <div className="grid grid-cols-2 gap-8">
-                      <div className="space-y-1">
-                         <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Email Address</label>
-                         <p className="text-sm font-black text-gray-900">{selectedLead.formData?.email}</p>
-                      </div>
-                      <div className="space-y-1">
-                         <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Phone Number</label>
-                         <p className="text-sm font-black text-gray-900">{selectedLead.formData?.phone}</p>
-                      </div>
+                   <h3 className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em] mb-6">Submission Data</h3>
+                   <div className="grid grid-cols-2 gap-x-8 gap-y-6">
+                      {Object.entries(selectedLead.formData || {}).map(([key, value]) => {
+                        if (typeof value !== 'string' && typeof value !== 'number') return null;
+                        const label = key
+                          .replace(/([A-Z])/g, ' $1')
+                          .replace(/^./, (str) => str.toUpperCase());
+                        
+                        return (
+                          <div key={key} className="space-y-1">
+                             <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{label}</label>
+                             <p className="text-sm font-black text-gray-900 break-words">{value || 'N/A'}</p>
+                          </div>
+                        );
+                      })}
                    </div>
                 </section>
 
-                <section>
-                   <h3 className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em] mb-6">Response Message</h3>
-                   <div className="p-8 bg-gray-50 rounded-[2rem] border border-gray-100 italic text-gray-700 font-medium leading-relaxed shadow-inner">
-                      "{selectedLead.formData?.message || 'No message provided'}"
-                   </div>
-                </section>
+                {selectedLead.formData?.message && (
+                  <section>
+                    <h3 className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em] mb-6">Additional Message</h3>
+                    <div className="p-8 bg-gray-50 rounded-[2rem] border border-gray-100 italic text-gray-700 font-medium leading-relaxed shadow-inner">
+                        "{selectedLead.formData.message}"
+                    </div>
+                  </section>
+                )}
 
                 <section>
                    <h3 className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em] mb-6">Action Center</h3>

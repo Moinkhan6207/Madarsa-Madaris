@@ -33,19 +33,34 @@ export default function TenantAdminLayout({ children }: { children: React.ReactN
   });
 
   useEffect(() => {
-    if (isLoading || isError || !tenant) return;
+    if (isLoading) return;
 
-    // Allowed routes for non-ACTIVE tenants
+    // 1. Handle Super Admin redirection
+    const userStr = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
+    const userRole = typeof window !== 'undefined' ? localStorage.getItem('user_role') : null;
+    const isSuperAdmin = userRole === 'SUPER_ADMIN';
+
+    if (isSuperAdmin && !pathname.startsWith('/platform')) {
+      router.replace('/platform/tenants');
+      return;
+    }
+
+    if (isError || !tenant) {
+       if (!isSuperAdmin) {
+          // Only show error for regular users if context is actually missing
+          return;
+       }
+    };
+
+    // 2. Intelligent redirection based on status
     const isPendingPage = pathname.startsWith('/pending');
     const isSetupPage = pathname.startsWith('/setup');
 
-    if (tenant.status === TenantStatus.DRAFT && !isSetupPage) {
+    if (tenant?.status === TenantStatus.DRAFT && !isSetupPage) {
       router.replace('/setup');
-    } else if (tenant.status === TenantStatus.PENDING_ACTIVATION && !isPendingPage) {
+    } else if (tenant?.status === TenantStatus.PENDING_ACTIVATION && !isPendingPage) {
       router.replace('/pending');
-    } else if (tenant.status === TenantStatus.ACTIVE && (isPendingPage || isSetupPage)) {
-      // If active, they shouldn't be in pending or setup after they are done
-      // (Optional: can also just let them browse but usually we want them in dashboard)
+    } else if (tenant?.status === TenantStatus.ACTIVE && (isPendingPage || isSetupPage)) {
       router.replace('/dashboard');
     }
   }, [tenant, isLoading, isError, pathname, router]);
@@ -58,13 +73,24 @@ export default function TenantAdminLayout({ children }: { children: React.ReactN
     );
   }
 
-  if (isError) {
+  // Check if we should show error
+  const userRole = typeof window !== 'undefined' ? localStorage.getItem('user_role') : null;
+  const isSuperAdmin = userRole === 'SUPER_ADMIN';
+  
+  if (isError && !isSuperAdmin) {
     return (
       <div className="flex h-screen flex-col items-center justify-center gap-4 text-center">
         <h2 className="text-xl font-bold text-red-600">Failed to load tenant context</h2>
         <p className="text-gray-500 text-sm">Please try logging in again.</p>
         <button 
-          onClick={() => window.location.href = '/login'}
+          onClick={() => {
+             localStorage.removeItem('token');
+             localStorage.removeItem('user');
+             // Also clear cookies to prevent middleware redirect loop
+             document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+             document.cookie = 'user_role=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+             window.location.href = '/login';
+          }}
           className="rounded-lg bg-emerald-600 px-6 py-2 pb font-semibold text-white hover:bg-emerald-700"
         >
           Return to Login

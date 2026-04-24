@@ -104,8 +104,8 @@ export class CmsService {
   }
 
   async updatePage(tenantId: string, id: string, data: any) {
-    // 1. Validate Schema
-    const validatedData = CmsValidationService.validatePage(data);
+    // 1. Validate Schema (Partial allowed for updates)
+    const validatedData = CmsValidationService.validateUpdatePage(data);
     const { blocks, ...pageData } = validatedData;
 
     return this.prisma.$transaction(async (tx) => {
@@ -171,73 +171,114 @@ export class CmsService {
 
   // ─── Bootstrap ──────────────────────────────────────────────────────────────
 
-  async bootstrapWebsite(tenantId: string) {
+  async bootstrapWebsite(tenantId: string, txClient?: any) {
     const defaultPages = [
       {
         title: 'Home', slug: 'home', isPublished: true, isHomePage: true, blocks: [
-          { type: 'hero', content: { title: 'Welcome to our Institution', subtitle: 'Empowering future generations', ctaText: 'Apply Now' }, order: 0 },
-          { type: 'stats', content: { items: [{ label: 'Students', value: '500+' }, { label: 'Graduates', value: '1000+' }] }, order: 1 }
+          { type: 'hero', content: { title: 'Welcome to our Institution', subtitle: 'Empowering future generations with quality Islamic education', ctaText: 'Apply Now', ctaLink: '/admission', imageUrl: '' }, order: 0 },
+          { type: 'stats', content: { items: [{ label: 'Students', value: '500+' }, { label: 'Graduates', value: '1000+' }, { label: 'Years of Excellence', value: '20+' }, { label: 'Branches', value: '5+' }] }, order: 1 },
+          { type: 'about', content: { title: 'About Our Institution', description: 'We provide quality education based on strong Islamic values and modern pedagogy.' }, order: 2 },
+          { type: 'donation-banner', content: { title: 'Support Our Mission', description: 'Your generosity helps us educate the next generation', ctaText: 'Donate Now', campaignGoal: '100000', amountRaised: '0', currency: 'INR' }, order: 3 }
         ]
       },
       {
         title: 'About Us', slug: 'about', isPublished: true, isHomePage: false, blocks: [
-          { type: 'about', content: { title: 'Our Story', description: 'We provide quality education based on strong values.' }, order: 0 }
+          { type: 'about', content: { title: 'Our Story', description: 'Founded with the mission to provide authentic Islamic education, we have been empowering students for over two decades with knowledge, character and excellence.', imageUrl: '' }, order: 0 },
+          { type: 'stats', content: { items: [{ label: 'Students Enrolled', value: '500+' }, { label: 'Alumni', value: '1000+' }, { label: 'Teachers', value: '30+' }, { label: 'Years', value: '20+' }] }, order: 1 },
+          { type: 'testimonials', content: { title: 'What Students Say', testimonials: [{ name: 'Ahmed Ali', role: 'Graduate 2022', text: 'An institution that shaped my character for life.', imageUrl: '' }] }, order: 2 }
         ]
       },
       {
         title: 'Courses', slug: 'courses', isPublished: true, isHomePage: false, blocks: [
-          { type: 'courses', content: { title: 'Our Programs', items: ['Hifz', 'Aalimiyat', 'Nazra'] }, order: 0 }
+          { type: 'hero', content: { title: 'Our Programs', subtitle: 'Choose the path that aligns with your calling', ctaText: 'Apply Now' }, order: 0 },
+          { type: 'courses', content: { title: 'Academic Programs', courses: [{ title: 'Hifz ul Quran', duration: '3-5 Years', description: 'Complete memorization of the Holy Quran with Tajweed' }, { title: 'Aalimiyat', duration: '7 Years', description: 'Comprehensive traditional Islamic scholarship program' }, { title: 'Nazra', duration: '1-2 Years', description: 'Quran reading with proper pronunciation and rules' }] }, order: 1 }
         ]
       },
       {
         title: 'Admission', slug: 'admission', isPublished: true, isHomePage: false, blocks: [
-          { type: 'hero', content: { title: 'Admissions Open', subtitle: 'Apply now for the upcoming academic year' }, order: 0 },
-          { type: 'form', content: { formType: 'ADMISSION', title: 'Admission Form' }, order: 1 }
+          { type: 'hero', content: { title: 'Admissions Open', subtitle: 'Join our institution for the upcoming academic year. Limited seats available.', ctaText: 'Apply Now' }, order: 0 },
+          { type: 'form', content: { formType: 'ADMISSION', title: 'Admission Application Form', description: 'Fill in your details below and our admissions team will contact you.' }, order: 1 }
         ]
       },
       {
         title: 'Contact', slug: 'contact', isPublished: true, isHomePage: false, blocks: [
-          { type: 'form', content: { formType: 'CONTACT', title: 'Get in Touch' }, order: 0 }
+          { type: 'form', content: { formType: 'CONTACT', title: 'Get in Touch', description: 'Have a question? We\'d love to hear from you.' }, order: 0 }
         ]
       },
       {
         title: 'Donation', slug: 'donation', isPublished: true, isHomePage: false, blocks: [
-          { type: 'donation-banner', content: { title: 'Support Us', description: 'Your contribution makes a difference', ctaText: 'Donate' }, order: 0 }
+          { type: 'hero', content: { title: 'Support Our Mission', subtitle: 'Every contribution, big or small, helps us continue building leaders of tomorrow', ctaText: 'Donate Now' }, order: 0 },
+          { type: 'donation-banner', content: { title: 'Current Campaign: New Library Fund', description: 'Help us build a state-of-the-art library for our students. Your waqf (endowment) will create ongoing charitable reward.', ctaText: 'Donate Now', campaignGoal: '100000', amountRaised: '35000', currency: 'INR' }, order: 1 }
+        ]
+      },
+      {
+        title: 'Events', slug: 'events', isPublished: true, isHomePage: false, blocks: [
+          { type: 'hero', content: { title: 'Events & Programs', subtitle: 'Stay up to date with our latest events, lectures and graduation ceremonies', ctaText: 'Contact Us' }, order: 0 },
+          { type: 'cta', content: { title: 'Want to be notified of upcoming events?', buttonText: 'Contact Us', link: '/contact' }, order: 1 }
+        ]
+      },
+      {
+        title: 'Results', slug: 'results', isPublished: true, isHomePage: false, blocks: [
+          { type: 'hero', content: { title: 'Academic Results', subtitle: 'Celebrating the achievements of our students and graduates', ctaText: 'View Programs' }, order: 0 },
+          { type: 'stats', content: { items: [{ label: 'Pass Rate', value: '98%' }, { label: 'Distinctions', value: '120+' }, { label: 'Hifz Completions', value: '45' }, { label: 'Batch Year', value: '2024' }] }, order: 1 }
+        ]
+      },
+      {
+        title: 'Gallery', slug: 'gallery', isPublished: true, isHomePage: false, blocks: [
+          { type: 'hero', content: { title: 'Our Gallery', subtitle: 'Moments from campus life, events and graduation ceremonies', ctaText: 'Explore' }, order: 0 },
+          { type: 'gallery', content: { title: 'Campus Life', images: [] }, order: 1 }
         ]
       }
     ];
 
-    return this.prisma.$transaction(async (tx) => {
+    const operation = async (tx: any) => {
       for (const page of defaultPages) {
         const { blocks, ...pageData } = page;
-        const existing = await tx.page.findFirst({ where: { tenantId, slug: page.slug, deletedAt: null } });
-        if (existing) continue;
-
-        if (pageData.isHomePage) {
-           await tx.page.updateMany({
-             where: { tenantId, isHomePage: true, deletedAt: null },
-             data: { isHomePage: false }
-           });
-        }
-
-        const createdPage = await tx.page.create({
-          data: { ...pageData, tenantId }
+        const existing = await tx.page.findFirst({ 
+          where: { tenantId, slug: page.slug, deletedAt: null } 
         });
 
+        let pageId: string;
+
+        if (existing) {
+          // Update existing page (metadata + blocks)
+          await tx.page.update({
+             where: { id: existing.id },
+             data: { 
+               isPublished: true, 
+               isHomePage: pageData.isHomePage || false,
+               title: pageData.title 
+             }
+          });
+          pageId = existing.id;
+          
+          // Clear old blocks before adding new ones
+          await tx.pageBlock.deleteMany({ where: { pageId: pageId, tenantId } });
+        } else {
+          // Create new page
+          const createdPage = await tx.page.create({
+            data: { ...pageData, tenantId, isPublished: true }
+          });
+          pageId = createdPage.id;
+        }
+
+        // Add default blocks
         if (blocks.length > 0) {
           await tx.pageBlock.createMany({
-            data: blocks.map((block, index) => ({
+            data: blocks.map((block: any, index: number) => ({
               type: block.type,
-              content: { en: block.content },
-              config: {},
+              content: block.content || {},
+              config: block.config || {},
               order: block.order !== undefined ? block.order : index,
-              pageId: createdPage.id,
+              pageId: pageId,
               tenantId
             }))
           });
         }
       }
       return { success: true, message: 'Website bootstrapped successfully' };
-    });
+    };
+
+    return txClient ? operation(txClient) : this.prisma.$transaction(operation);
   }
 }

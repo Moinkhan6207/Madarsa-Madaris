@@ -76,19 +76,19 @@ export const tenantService = {
    * Create new tenant
    */
   create: (data: CreateTenantDto, config?: ApiClientConfig) => 
-    apiClient.post<TenantApiResponse<Tenant>>('/tenants', data, config),
+    apiClient.post<TenantApiResponse<Tenant>>('/tenants', data),
   
   /**
    * Update tenant
    */
   update: (id: string, data: UpdateTenantDto, config?: ApiClientConfig) =>
-    apiClient.patch<TenantApiResponse<Tenant>>(`/tenants/${id}`, data, config),
+    apiClient.patch<TenantApiResponse<Tenant>>(`/tenants/${id}`, data),
   
   /**
    * Delete tenant
    */
   delete: (id: string, config?: ApiClientConfig) =>
-    apiClient.delete<TenantApiResponse<void>>(`/tenants/${id}`, config),
+    apiClient.delete<TenantApiResponse<void>>(`/tenants/${id}`),
   
   /**
    * Check subdomain availability
@@ -100,13 +100,13 @@ export const tenantService = {
    * Verify tenant (admin only)
    */
   verify: (id: string, config?: ApiClientConfig) =>
-    apiClient.post<TenantApiResponse<Tenant>>(`/tenants/${id}/verify`, {}, config),
+    apiClient.post<TenantApiResponse<Tenant>>(`/tenants/${id}/verify`, {}),
   
   /**
    * Suspend tenant (admin only)
    */
   suspend: (id: string, reason?: string, config?: ApiClientConfig) =>
-    apiClient.post<TenantApiResponse<Tenant>>(`/tenants/${id}/suspend`, { reason }, config),
+    apiClient.post<TenantApiResponse<Tenant>>(`/tenants/${id}/suspend`, { reason }),
 };
 
 // =============================================================================

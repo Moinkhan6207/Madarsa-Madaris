@@ -21,10 +21,14 @@ const createPrismaClient = (): PrismaClient => {
       ? [
           { emit: 'event', level: 'query' },
           { emit: 'event', level: 'error' },
-          { emit: 'event', level: 'info' },
           { emit: 'event', level: 'warn' },
         ]
       : [{ emit: 'event', level: 'error' }],
+    datasources: {
+      db: {
+        url: `${process.env.DATABASE_URL}${process.env.DATABASE_URL?.includes('?') ? '&' : '?'}pgbouncer=true&connection_limit=10&pool_timeout=30`,
+      },
+    },
   });
 
   // =============================================================================

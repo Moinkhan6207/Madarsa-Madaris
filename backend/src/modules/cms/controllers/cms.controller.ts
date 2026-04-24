@@ -4,6 +4,7 @@ import { MediaService } from '../services/media.service';
 import { prisma } from '../../../config/prisma.service';
 import { LocalStorageService } from '../../../common/storage/local-storage.service';
 import { AppError } from '../../../common/errors/AppError';
+import { PublicWebsiteController } from '../../public/controllers/public-website.controller';
 
 const cmsService = new CmsService(prisma);
 const storageService = new LocalStorageService();
@@ -22,6 +23,11 @@ export class CmsSettingsController {
     try {
       const tenantId = req.context!.tenantId!;
       const data = await cmsService.updateSettings(tenantId, req.body);
+
+      // Clear all public cache for this tenant when settings change
+      const tenant = await prisma.tenant.findUnique({ where: { id: tenantId }, select: { slug: true } });
+      if (tenant?.slug) PublicWebsiteController.clearCache(tenant.slug);
+
       res.json({ success: true, data });
     } catch (e) { next(e); }
   }
@@ -58,6 +64,15 @@ export class CmsPageController {
       const tenantId = req.context!.tenantId!;
       const { id } = req.params;
       const data = await cmsService.updatePage(tenantId, id as string, req.body);
+
+      // Clear public page cache so updates are immediately live
+      const tenant = await prisma.tenant.findUnique({ where: { id: tenantId }, select: { slug: true } });
+      if (tenant?.slug) {
+        PublicWebsiteController.clearCache(tenant.slug, data.slug);
+        // Also clear homepage cache in case isHomePage changed
+        PublicWebsiteController.clearCache(tenant.slug, 'root');
+      }
+
       res.json({ success: true, data });
     } catch (e) { next(e); }
   }
@@ -66,7 +81,13 @@ export class CmsPageController {
     try {
       const tenantId = req.context!.tenantId!;
       const { id } = req.params;
+      // Get page slug before soft-delete to clear cache
+      const page = await cmsService.getPage(tenantId, id as string);
       await cmsService.deletePage(tenantId, id as string);
+
+      const tenant = await prisma.tenant.findUnique({ where: { id: tenantId }, select: { slug: true } });
+      if (tenant?.slug) PublicWebsiteController.clearCache(tenant.slug, page.slug);
+
       res.json({ success: true, message: 'Page deleted' });
     } catch (e) { next(e); }
   }
@@ -75,6 +96,11 @@ export class CmsPageController {
     try {
       const tenantId = req.context!.tenantId!;
       const data = await cmsService.bootstrapWebsite(tenantId);
+
+      // Clear all tenant cache after bootstrap
+      const tenant = await prisma.tenant.findUnique({ where: { id: tenantId }, select: { slug: true } });
+      if (tenant?.slug) PublicWebsiteController.clearCache(tenant.slug);
+
       res.json({ success: true, data });
     } catch (e) { next(e); }
   }

@@ -11,9 +11,9 @@ const PublicLeadSchema = z.object({
   type: z.enum(['ADMISSION', 'CONTACT', 'INQUIRY', 'VOLUNTEER']),
   formData: z.object({
     name: z.string().min(2).max(100),
-    email: z.string().email(),
-    phone: z.string().min(10).max(15).optional(),
-    message: z.string().max(1000).optional(),
+    email: z.string().email().optional().or(z.literal('')),
+    phone: z.string().min(10).max(20).optional().or(z.literal('')),
+    message: z.string().max(2000).optional().or(z.literal('')),
   }).passthrough()
 });
 

@@ -6,6 +6,7 @@ import { api } from '@lib/api';
 import { useRouter } from 'next/navigation';
 import { Loader2, Clock, RefreshCcw, LogOut } from 'lucide-react';
 import { TenantStatus } from '@/types/tenant';
+import { logout } from '@services/auth.service';
 
 export default function PendingApprovalPage() {
   const router = useRouter();
@@ -25,8 +26,7 @@ export default function PendingApprovalPage() {
   }, [tenant, router]);
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    window.location.href = '/login';
+    logout();
   };
 
   if (isLoading) {

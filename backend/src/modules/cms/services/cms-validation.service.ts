@@ -2,7 +2,7 @@ import sanitizeHtml from 'sanitize-html';
 import { z } from 'zod';
 
 export const BlockSchema = z.object({
-  type: z.enum(['hero', 'about', 'stats', 'cta', 'gallery', 'courses', 'testimonials', 'donation-banner']),
+  type: z.enum(['hero', 'about', 'stats', 'cta', 'gallery', 'courses', 'testimonials', 'donation-banner', 'form']),
   content: z.record(z.any()),
   config: z.record(z.any()).optional(),
   order: z.number().int().optional(),
@@ -13,9 +13,10 @@ export const PageSchema = z.object({
   slug: z.string().regex(/^[a-z0-9-]+$/, 'Slug must be lowercase alphanumeric with hyphens'),
   isPublished: z.boolean().optional(),
   isHomePage: z.boolean().optional(),
-  metaTitle: z.string().max(70).optional(),
-  metaDescription: z.string().max(160).optional(),
-  ogImage: z.string().url().optional().or(z.literal('')),
+  metaTitle: z.string().max(70).optional().nullable(),
+  metaDescription: z.string().max(160).optional().nullable(),
+  ogImage: z.string().url().optional().or(z.literal('')).nullable(),
+  canonicalUrl: z.string().url().optional().or(z.literal('')).nullable(),
   blocks: z.array(BlockSchema).optional(),
 });
 
@@ -51,5 +52,9 @@ export class CmsValidationService {
 
   static validatePage(data: any) {
     return PageSchema.parse(data);
+  }
+
+  static validateUpdatePage(data: any) {
+    return PageSchema.partial().parse(data);
   }
 }

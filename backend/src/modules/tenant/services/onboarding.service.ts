@@ -1,9 +1,14 @@
 import { PrismaClient } from '@prisma/client';
 import { AppError } from '../../../common/errors/AppError';
 import { emailService } from '../../../common/email/email.service';
+import { CmsService } from '../../cms/services/cms.service';
 
 export class OnboardingService {
-  constructor(private readonly prisma: PrismaClient) {}
+  private cmsService: CmsService;
+  
+  constructor(private readonly prisma: PrismaClient) {
+    this.cmsService = new CmsService(prisma);
+  }
 
   async getOnboardingStatus(tenantId: string) {
     const status = await this.prisma.onboardingProgress.findUnique({
@@ -61,6 +66,9 @@ export class OnboardingService {
           } 
         }
       });
+
+      // FR-3: Automatically bootstrap the website pages during finalization
+      await this.cmsService.bootstrapWebsite(tenantId, tx);
 
       return tenant;
     });

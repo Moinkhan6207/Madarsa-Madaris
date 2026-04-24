@@ -4,7 +4,8 @@ import { useQuery } from '@tanstack/react-query';
 import { getOnboardingStatus } from '@services/onboarding.service';
 import { StepProgress } from '@components/onboarding/StepProgress';
 import { usePathname } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
+import { logout } from '@services/auth.service';
+import { Loader2, ArrowLeft } from 'lucide-react';
 
 export default function OnboardingLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -37,7 +38,25 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
       <header className="bg-white border-b border-gray-200 py-6 sticky top-0 z-30">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col items-center gap-6">
-            <div className="text-center">
+            <div className="text-center w-full relative left-0 right-0">
+              <button 
+                onClick={logout}
+                className="hidden sm:flex absolute left-0 top-1/2 -translate-y-1/2 items-center text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors"
+                title="Back to login"
+              >
+                <ArrowLeft className="w-4 h-4 mr-1" />
+                Back
+              </button>
+              {/* Mobile back button */}
+              <div className="sm:hidden flex justify-start mb-4">
+                <button 
+                  onClick={logout}
+                  className="flex items-center text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors"
+                >
+                  <ArrowLeft className="w-4 h-4 mr-1" />
+                  Back
+                </button>
+              </div>
               <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Setup your Institution</h1>
               <p className="text-sm text-gray-500 mt-1">Complete these steps to activate your platform.</p>
             </div>

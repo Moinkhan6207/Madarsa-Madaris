@@ -42,7 +42,7 @@ export function middleware(request: NextRequest) {
   const isLocalhost = host.includes('localhost') || host.includes('127.0.0.1');
   const mainDomain = process.env.NEXT_PUBLIC_MAIN_DOMAIN || 'madarsa-saas.com';
   
-  const reservedPaths = ['login', 'register', 'dashboard', 'platform', 'api', 'public', 'setup', '_next', 'favicon.ico', 'assets'];
+  const reservedPaths = ['login', 'register', 'dashboard', 'platform', 'api', 'public', 'setup', 'pending', '_next', 'favicon.ico', 'assets'];
   const segments = pathname.split('/').filter(Boolean);
 
   // A. Access via Subdomain (e.g., idara.saas.com/path)
