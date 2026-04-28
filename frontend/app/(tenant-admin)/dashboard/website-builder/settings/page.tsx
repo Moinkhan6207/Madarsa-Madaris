@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { cmsService, WebsiteSettings } from '@/services/cms.service';
-import { Save, Globe, Palette, Share2, Info, CheckCircle2, Image as ImageIcon, X } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Save, Globe, Palette, Share2, Info, CheckCircle2, Image as ImageIcon, X, ArrowLeft } from 'lucide-react';
 import MediaLibrary from '@/components/cms/MediaLibrary';
 
 function Toast({ message, type }: { message: string; type: 'success' | 'error' }) {
@@ -18,6 +19,7 @@ function Toast({ message, type }: { message: string; type: 'success' | 'error' }
 }
 
 export default function WebsiteSettingsPage() {
+  const router = useRouter();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('general');
   const [formData, setFormData] = useState<WebsiteSettings>({});
@@ -76,6 +78,13 @@ export default function WebsiteSettingsPage() {
 
       <div className="flex justify-between items-end border-b border-gray-100 pb-6">
         <div>
+          <button 
+            onClick={() => router.push('/dashboard/website-builder')}
+            className="flex items-center gap-2 mb-4 text-[11px] font-black uppercase tracking-widest text-gray-400 hover:text-gray-900 transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Website Builder
+          </button>
           <h1 className="text-3xl font-bold text-gray-900 tracking-tight text-[var(--primary-color)]">Site Settings</h1>
           <p className="text-gray-500 mt-1 font-medium">Configure your institution's public website identity.</p>
         </div>

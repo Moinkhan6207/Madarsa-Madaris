@@ -5,14 +5,22 @@ import { AppError } from '../errors/AppError';
 const storage = multer.memoryStorage();
 
 const fileFilter = (_req: any, file: Express.Multer.File, cb: any) => {
-  const allowedTypes = ['image/png', 'image/jpg', 'image/jpeg', 'image/webp'];
+  const allowedTypes = [
+    'image/png', 
+    'image/jpg', 
+    'image/jpeg', 
+    'image/webp',
+    'image/svg+xml',
+    'image/gif'
+  ];
   
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new AppError('Invalid file type. Only PNG, JPG, JPEG and WEBP are allowed.', 400, 'INVALID_FILE_TYPE'), false);
+    cb(new AppError('Invalid file type. Only PNG, JPG, JPEG, WEBP, SVG and GIF are allowed.', 400, 'INVALID_FILE_TYPE'), false);
   }
 };
+
 
 export const upload = multer({
   storage,

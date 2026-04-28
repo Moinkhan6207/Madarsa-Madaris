@@ -2,7 +2,6 @@ import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig, AxiosResp
 import { 
   ApiErrorResponse, 
   FrontendApiError, 
-  normalizeError 
 } from '@/types/api-error';
 import { removeCookie } from '@/lib/cookies';
 
@@ -12,7 +11,8 @@ export const api: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
   timeout: 30000,
   headers: {
-    'Content-Type': 'application/json',
+    // We remove the default Content-Type to allow Axios to automatically
+    // set the correct header (e.g., multipart/form-data for FormData)
   },
   withCredentials: true,
 });
@@ -88,11 +88,11 @@ const normalizeAxiosError = (error: AxiosError<ApiErrorResponse>): FrontendApiEr
 
 // Typed API Client
 export const apiClient = {
-  get: <T>(url: string, params?: any) => api.get<T>(url, { params }).then((r) => r.data),
-  post: <T>(url: string, data?: any) => api.post<T>(url, data).then((r) => r.data),
-  put: <T>(url: string, data?: any) => api.put<T>(url, data).then((r) => r.data),
-  patch: <T>(url: string, data?: any) => api.patch<T>(url, data).then((r) => r.data),
-  delete: <T>(url: string) => api.delete<T>(url).then((r) => r.data),
+  get: <T>(url: string, config?: any) => api.get<T>(url, config).then((r) => r.data),
+  post: <T>(url: string, data?: any, config?: any) => api.post<T>(url, data, config).then((r) => r.data),
+  put: <T>(url: string, data?: any, config?: any) => api.put<T>(url, data, config).then((r) => r.data),
+  patch: <T>(url: string, data?: any, config?: any) => api.patch<T>(url, data, config).then((r) => r.data),
+  delete: <T>(url: string, config?: any) => api.delete<T>(url, config).then((r) => r.data),
 };
 
 export default api;

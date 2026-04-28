@@ -145,9 +145,44 @@ export default function WebsiteBuilderPage() {
   const [tenantSlug, setTenantSlug] = useState<string>('');
 
   useEffect(() => {
-    const slug = localStorage.getItem('tenant_slug') || localStorage.getItem('tenantSlug') || '';
-    setTenantSlug(slug);
+    const resolveSlug = async () => {
+      // 1. Check direct keys
+      let slug = localStorage.getItem('tenant_slug') || localStorage.getItem('tenantSlug');
+      
+      // 2. Fallback: Check user object
+      if (!slug) {
+        const userStr = localStorage.getItem('user');
+        if (userStr) {
+          try {
+            const user = JSON.parse(userStr);
+            slug = user.tenantSlug;
+          } catch (e) {}
+        }
+      }
+      
+      // 3. Last Resort: Fetch from API
+      if (!slug) {
+        try {
+          const res = await cmsService.getTenantInfo();
+          if (res?.success && res?.data) {
+            slug = res.data.slug;
+          }
+
+          if (slug) {
+            localStorage.setItem('tenant_slug', slug);
+          }
+        } catch (e) {
+          console.error('Failed to resolve tenant slug:', e);
+        }
+      }
+      
+      setTenantSlug(slug || '');
+    };
+
+    resolveSlug();
   }, []);
+
+
 
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
     setToast({ message, type });
@@ -232,6 +267,19 @@ export default function WebsiteBuilderPage() {
           <p className="text-slate-500 font-medium text-lg mt-1">Design and publish your institutional pages.</p>
         </div>
         <div className="flex flex-wrap gap-3">
+          <button
+            onClick={() => {
+              if (tenantSlug) {
+                window.open(`/public/${tenantSlug}`, '_blank');
+              } else {
+                showToast('Tenant slug not found. Please try again.', 'error');
+              }
+            }}
+            className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3.5 bg-slate-900 text-white rounded-2xl hover:bg-black transition-all font-bold shadow-lg"
+          >
+            <Eye className="w-5 h-5" />
+            View Live Site
+          </button>
           <Link
             href="/dashboard/website-builder/settings"
             className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3.5 bg-white border border-slate-200 text-slate-600 rounded-2xl hover:bg-slate-50 transition-all font-bold shadow-sm"
@@ -248,6 +296,7 @@ export default function WebsiteBuilderPage() {
             New Page
           </button>
         </div>
+
       </div>
 
       {/* Content Area */}

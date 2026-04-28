@@ -60,4 +60,8 @@ export const cmsService = {
 
   bootstrapWebsite: () => 
     apiClient.post<{ success: boolean; message: string }>('/tenant/cms/pages/bootstrap', {}),
+
+  getTenantInfo: () =>
+    apiClient.get<{ success: boolean; data: any }>('/tenant/me'),
 };
+

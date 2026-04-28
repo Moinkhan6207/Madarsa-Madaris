@@ -12,7 +12,7 @@ export class MediaService {
     const filename = `media/${tenantId}/${file.originalname}`;
     const filePath = await this.storage.upload(file, filename);
 
-    return this.prisma.media.create({
+    const media = await this.prisma.media.create({
       data: {
         tenantId,
         url: filePath,
@@ -22,6 +22,11 @@ export class MediaService {
         mimeType: file.mimetype
       }
     });
+    
+    return {
+      ...media,
+      url: this.storage.getUrl(media.url)
+    };
   }
 
   async listMedia(tenantId: string) {

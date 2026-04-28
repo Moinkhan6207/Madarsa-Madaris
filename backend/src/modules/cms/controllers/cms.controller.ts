@@ -63,7 +63,16 @@ export class CmsPageController {
     try {
       const tenantId = req.context!.tenantId!;
       const { id } = req.params;
+      
+      console.log(`[DEBUG] Updating CMS Page ${id} for tenant ${tenantId}`);
+      if (req.body.blocks) {
+        console.log(`[DEBUG] Received ${req.body.blocks.length} blocks:`, JSON.stringify(req.body.blocks, null, 2));
+      } else {
+        console.log(`[DEBUG] No blocks provided in request body`);
+      }
+
       const data = await cmsService.updatePage(tenantId, id as string, req.body);
+      console.log(`[DEBUG] Update successful. Page slug: ${data.slug}. Blocks count in response:`, data.blocks?.length);
 
       // Clear public page cache so updates are immediately live
       const tenant = await prisma.tenant.findUnique({ where: { id: tenantId }, select: { slug: true } });
@@ -74,7 +83,10 @@ export class CmsPageController {
       }
 
       res.json({ success: true, data });
-    } catch (e) { next(e); }
+    } catch (e) { 
+      console.error('[DEBUG] Update failed:', e);
+      next(e); 
+    }
   }
 
   static async remove(req: Request, res: Response, next: NextFunction) {

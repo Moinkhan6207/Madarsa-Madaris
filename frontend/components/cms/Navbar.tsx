@@ -2,7 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { Menu, X, Phone } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 // WhatsApp icon
 const WhatsAppIcon = () => (
@@ -11,20 +13,18 @@ const WhatsAppIcon = () => (
   </svg>
 );
 
-const NAV_PAGES = [
-  { label: 'Home', slug: '' },
-  { label: 'About', slug: 'about' },
-  { label: 'Courses', slug: 'courses' },
-  { label: 'Admission', slug: 'admission' },
-  { label: 'Events', slug: 'events' },
-  { label: 'Donation', slug: 'donation' },
-  { label: 'Contact', slug: 'contact' },
-];
-
-export default function Navbar({ tenant, settings }: any) {
+export default function Navbar({ tenant, settings, navigation = [] }: any) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const pathname = usePathname();
   const primary = settings?.primaryColor || '#10b981';
+
+  // Sort: Home page first, then others
+  const navItems = [...navigation].sort((a, b) => {
+    if (a.isHomePage || a.slug === 'home') return -1;
+    if (b.isHomePage || b.slug === 'home') return 1;
+    return a.title.localeCompare(b.title);
+  });
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -34,6 +34,14 @@ export default function Navbar({ tenant, settings }: any) {
 
   const baseUrl = `/public/${tenant?.slug}`;
   const whatsapp = settings?.whatsappNumber;
+
+  const isLinkActive = (item: any) => {
+    const itemPath = `${baseUrl}${item.isHomePage || item.slug === 'home' ? '' : '/' + item.slug}`;
+    if (item.isHomePage || item.slug === 'home') {
+      return pathname === itemPath || pathname === `${itemPath}/`;
+    }
+    return pathname.startsWith(itemPath);
+  };
 
   return (
     <>
@@ -68,15 +76,28 @@ export default function Navbar({ tenant, settings }: any) {
 
           {/* Desktop Nav */}
           <div className="hidden lg:flex items-center gap-1">
-            {NAV_PAGES.map((item) => (
-              <Link
-                key={item.slug}
-                href={`${baseUrl}${item.slug ? '/' + item.slug : ''}`}
-                className="text-[11px] font-bold text-gray-500 hover:text-gray-900 transition-colors uppercase tracking-wider px-3 py-2 rounded-lg hover:bg-gray-50"
-              >
-                {item.label}
-              </Link>
-            ))}
+            {navItems.map((item) => {
+              const active = isLinkActive(item);
+              return (
+                <Link
+                  key={item.slug}
+                  href={`${baseUrl}${item.isHomePage || item.slug === 'home' ? '' : '/' + item.slug}`}
+                  className={`relative text-[11px] font-bold transition-all uppercase tracking-widest px-4 py-2 rounded-lg ${
+                    active ? 'text-gray-900 bg-gray-50' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50/50'
+                  }`}
+                >
+                  {item.title}
+                  {active && (
+                    <motion.div
+                      layoutId="nav-active"
+                      className="absolute bottom-0 left-4 right-4 h-0.5 rounded-full"
+                      style={{ background: primary }}
+                      transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                    />
+                  )}
+                </Link>
+              );
+            })}
           </div>
 
           {/* Right Actions */}
@@ -94,7 +115,7 @@ export default function Navbar({ tenant, settings }: any) {
             )}
             <Link
               href={`${baseUrl}/admission`}
-              className="hidden sm:flex items-center gap-2 px-5 py-2.5 text-white rounded-xl font-bold text-sm hover:opacity-90 transition-all shadow-lg"
+              className="hidden sm:flex items-center gap-2 px-5 py-2.5 text-white rounded-xl font-bold text-sm hover:opacity-90 transition-all shadow-lg active:scale-95"
               style={{ background: primary }}
             >
               Apply Now
@@ -114,36 +135,47 @@ export default function Navbar({ tenant, settings }: any) {
         {mobileOpen && (
           <div className="lg:hidden border-t border-gray-100 bg-white animate-in slide-in-from-top-2 duration-200">
             <div className="max-w-7xl mx-auto px-6 py-4 space-y-1">
-              {NAV_PAGES.map((item) => (
-                <Link
-                  key={item.slug}
-                  href={`${baseUrl}${item.slug ? '/' + item.slug : ''}`}
-                  onClick={() => setMobileOpen(false)}
-                  className="block text-sm font-bold text-gray-600 hover:text-gray-900 uppercase tracking-wider py-3 px-4 rounded-xl hover:bg-gray-50 transition-all"
-                >
-                  {item.label}
-                </Link>
-              ))}
-              {whatsapp && (
-                <a
-                  href={`https://wa.me/${whatsapp.replace(/\D/g, '')}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 py-3 px-4 rounded-xl text-sm font-bold text-emerald-700 bg-emerald-50"
-                >
-                  <WhatsAppIcon />
-                  Chat on WhatsApp
-                </a>
-              )}
-              {settings?.contactPhone && (
-                <a
-                  href={`tel:${settings.contactPhone}`}
-                  className="flex items-center gap-2 py-3 px-4 rounded-xl text-sm font-bold text-gray-600 hover:bg-gray-50"
-                >
-                  <Phone className="w-4 h-4" />
-                  {settings.contactPhone}
-                </a>
-              )}
+              {navItems.map((item) => {
+                const active = isLinkActive(item);
+                return (
+                  <Link
+                    key={item.slug}
+                    href={`${baseUrl}${item.isHomePage || item.slug === 'home' ? '' : '/' + item.slug}`}
+                    onClick={() => setMobileOpen(false)}
+                    className={`block text-sm font-bold uppercase tracking-wider py-4 px-4 rounded-xl transition-all ${
+                      active ? 'text-white translate-x-1' : 'text-gray-600 hover:bg-gray-50'
+                    }`}
+                    style={active ? { background: primary } : {}}
+                  >
+                    {item.title}
+                  </Link>
+                );
+              })}
+              <div className="pt-4 mt-4 border-t border-gray-50 space-y-2">
+                {whatsapp && (
+                  <a
+                    href={`https://wa.me/${whatsapp.replace(/\D/g, '')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-between py-4 px-5 rounded-2xl text-sm font-bold text-emerald-700 bg-emerald-50 border border-emerald-100"
+                  >
+                    <div className="flex items-center gap-3">
+                      <WhatsAppIcon />
+                      Chat on WhatsApp
+                    </div>
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  </a>
+                )}
+                {settings?.contactPhone && (
+                  <a
+                    href={`tel:${settings.contactPhone}`}
+                    className="flex items-center gap-3 py-4 px-5 rounded-2xl text-sm font-bold text-gray-600 hover:bg-gray-50 border border-transparent hover:border-gray-100 transition-all font-mono"
+                  >
+                    <Phone className="w-4 h-4" />
+                    {settings.contactPhone}
+                  </a>
+                )}
+              </div>
             </div>
           </div>
         )}

@@ -20,7 +20,7 @@ export class AuthService {
       where: { email },
       include: {
         tenant: {
-          select: { status: true, id: true }
+          select: { status: true, id: true, slug: true }
         },
         userRoles: {
           include: {
@@ -61,6 +61,7 @@ export class AuthService {
         fullName: userWithDetails.fullName,
         email: userWithDetails.email,
         tenantId: userWithDetails.tenantId,
+        tenantSlug: userWithDetails.tenant?.slug,
         tenantStatus: userWithDetails.tenant?.status,
         roles: userWithDetails.userRoles.map((ur: any) => ur.role.code),
         permissions: Array.from(new Set(userWithDetails.userRoles.flatMap((ur: any) => ur.role.rolePermissions.map((rp: any) => rp.permission.code))))
@@ -85,8 +86,10 @@ export class AuthService {
         fullName: payload.adminUser.fullName,
         email: payload.adminUser.email,
         tenantId: result.tenantId,
+        tenantSlug: payload.slug,
         tenantStatus: 'DRAFT',
         roles: ['TENANT_OWNER'],
+
         permissions: [] // New tenant owners get permissions via their role later
       },
       token

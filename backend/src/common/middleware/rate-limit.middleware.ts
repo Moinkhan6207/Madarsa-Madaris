@@ -26,9 +26,10 @@ export const createRateLimiter = (options: RateLimitOptions) => {
     keyGenerator: (req) => {
       return (req as any).user?.id || (req as any).context?.tenantId || req.ip || (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || 'unknown';
     },
-    validate: { xForwardedForHeader: false },
+    validate: false,
   });
 };
+
 
 // ─── Specific Limiters ───────────────────────────────────────────────────────
 

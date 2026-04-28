@@ -43,10 +43,15 @@ export default function MediaLibrary({ onSelect, onClose, allowVideo = true }: M
       const formData = new FormData();
       formData.append('file', file);
       formData.append('type', file.type.startsWith('video/') ? 'VIDEO' : 'IMAGE');
-      return apiClient.post('/tenant/cms/media/upload', formData);
+      const res = await apiClient.post<{ success: boolean; data: Media }>('/tenant/cms/media/upload', formData);
+      return res.data;
     },
-    onSuccess: () => {
+    onSuccess: (uploadedMedia) => {
       queryClient.invalidateQueries({ queryKey: ['cms-media'] });
+      // Auto-select the newly uploaded image immediately to avoid user error
+      if (uploadedMedia?.url) {
+        onSelect(uploadedMedia.url);
+      }
     },
   });
 

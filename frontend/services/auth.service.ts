@@ -24,7 +24,11 @@ export const login = async (email: string, password: string): Promise<AuthRespon
   if (typeof window !== 'undefined') {
     localStorage.setItem('token', data.token);
     localStorage.setItem('user', JSON.stringify(data.user));
-    
+    if (data.user.tenantSlug) {
+      localStorage.setItem('tenantSlug', data.user.tenantSlug);
+      localStorage.setItem('tenant_slug', data.user.tenantSlug);
+    }
+
     // Set cookies for middleware protection
     setCookie('auth_token', data.token);
     setCookie('user_role', data.user.roles?.includes('SUPER_ADMIN') ? 'SUPER_ADMIN' : 'TENANT_ADMIN');
@@ -42,7 +46,13 @@ export const registerTenant = async (payload: any): Promise<any> => {
     setCookie('auth_token', data.token);
     if (data.user) {
        setCookie('user_role', data.user.roles?.includes('SUPER_ADMIN') ? 'SUPER_ADMIN' : 'TENANT_ADMIN');
+       localStorage.setItem('user', JSON.stringify(data.user));
+       if (data.user.tenantSlug) {
+         localStorage.setItem('tenantSlug', data.user.tenantSlug);
+         localStorage.setItem('tenant_slug', data.user.tenantSlug);
+       }
     }
+
   }
   
   return data;

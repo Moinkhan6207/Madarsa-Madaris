@@ -34,14 +34,14 @@ export class PublicWebsiteController {
           displayName: true,
           websiteSettings: true,
           pages: {
-            where: pageWhere,
-            orderBy: { isHomePage: 'desc' }, // Priority to isHomePage if OR matches both
-            include: { 
-              blocks: { 
-                orderBy: { order: 'asc' } 
-              } 
+            where: { isPublished: true, deletedAt: null },
+            select: {
+              id: true,
+              slug: true,
+              title: true,
+              isHomePage: true,
             },
-            take: 1
+            orderBy: { isHomePage: 'desc' },
           }
         }
       });
@@ -50,7 +50,25 @@ export class PublicWebsiteController {
         return res.status(404).json({ success: false, message: 'Institution website not found' });
       }
 
-      const page = (tenant as any).pages[0];
+      // Find the specific page requested
+      const page = await prisma.page.findFirst({
+        where: {
+          tenantId: tenant.id,
+          isPublished: true,
+          deletedAt: null,
+          ...( (pageSlug && pageSlug !== 'home')
+            ? { slug: pageSlug } 
+            : { OR: [{ isHomePage: true }, { slug: 'home' }] }
+          )
+        },
+
+        include: {
+          blocks: {
+            orderBy: { order: 'asc' }
+          }
+        }
+      });
+
       if (!page && pageSlug) {
         return res.status(404).json({ success: false, message: 'Page not found' });
       }
@@ -62,8 +80,10 @@ export class PublicWebsiteController {
           displayName: tenant.displayName
         },
         settings: (tenant as any).websiteSettings,
-        page: page || null
+        page: page || null,
+        navigation: tenant.pages || []
       };
+
 
       // 3. Set Cache
       publicCache.set(cacheKey, responseData);

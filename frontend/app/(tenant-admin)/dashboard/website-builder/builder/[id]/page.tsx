@@ -31,7 +31,8 @@ import {
   MousePointer2,
   Lock,
   Search,
-  Type
+  Type,
+  Target
 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
@@ -84,15 +85,47 @@ export default function PageBuilder() {
     queryKey: ['cms-page', id],
     queryFn: async () => {
       const res = await cmsService.getPage(id as string);
-      setBlocks(res.data.blocks || []);
-      setLocalPageData(res.data);
       return res.data;
     },
+    refetchOnWindowFocus: false, // Prevent losing unsaved changes
   });
 
+  useEffect(() => {
+    if (pageData) {
+      let pageBlocks = pageData.blocks || [];
+      if (pageBlocks.length === 0) {
+        pageBlocks = [{
+          type: 'hero',
+          content: { 
+            en: { 
+              title: 'Welcome to your new page', 
+              subtitle: 'Start by customizing this section or add new ones from the library.', 
+              ctaText: 'Get Started', 
+              ctaLink: '#', 
+              imageUrl: '', 
+              videoUrl: '', 
+              badge: 'NEW PAGE' 
+            } 
+          },
+          config: {},
+          order: 0
+        }];
+        setEditingBlockIndex(0);
+      } else {
+        setEditingBlockIndex(prev => prev !== null ? prev : 0);
+      }
+      setBlocks(pageBlocks);
+      setLocalPageData({ ...pageData, blocks: undefined }); // omit blocks to avoid overriding
+    }
+  }, [pageData]);
+
   const saveMutation = useMutation({
-    mutationFn: (data: Partial<Page>) => 
-      cmsService.updatePage(id as string, { ...localPageData, blocks, isPublished: localPageData.isPublished }),
+    mutationFn: (overrides?: Partial<Page>) => 
+      cmsService.updatePage(id as string, { 
+        ...localPageData, 
+        blocks, 
+        isPublished: overrides?.isPublished !== undefined ? overrides.isPublished : localPageData.isPublished 
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cms-page', id] });
       queryClient.invalidateQueries({ queryKey: ['cms-pages'] });
@@ -112,14 +145,20 @@ export default function PageBuilder() {
       case 'donation-banner': return { title: 'Support the House of Allah', description: 'Your contributions help us provide quality education to all.', ctaText: 'Donate Now', campaignGoal: '500000', amountRaised: '0', currency: 'INR' };
       case 'testimonials': return { title: 'Words of Wisdom', testimonials: [{ name: 'Ahmad Khan', role: 'Graduate', text: 'This institution transformed my life and understanding of Islam.', imageUrl: '' }] };
       case 'form': return { formType: 'CONTACT', title: 'Reach Out to Us', description: 'We are here to assist you with any inquiries.' };
+      case 'events': return { title: 'Upcoming Events', subtitle: 'Stay connected with our latest seminars, graduation ceremonies, and community gatherings.', events: [{ title: 'Annual Convocation', date: 'June 15, 2024', location: 'Main Auditorium' }] };
+      case 'results': return { title: 'Academic Achievements', subtitle: 'Celebrating the success of our students in regional and national examinations.', metrics: [{ label: 'Top Performers', value: '85' }, { label: 'Pass Percentage', value: '98%' }] };
       default: return {};
     }
   };
 
   const addBlock = (type: string) => {
     const newBlock: PageBlock = {
-      type,
-      content: { [currentLang]: getInitialContent(type) },
+      type: type === 'admission' || type === 'contact' ? 'form' : type === 'donation' ? 'donation-banner' : type,
+      content: { [currentLang]: { 
+        ...getInitialContent(type === 'admission' || type === 'contact' ? 'form' : type),
+        ...(type === 'admission' ? { formType: 'ADMISSION', title: 'Admission Application' } : {}),
+        ...(type === 'contact' ? { formType: 'CONTACT', title: 'Get In Touch' } : {})
+      } },
       config: {},
       order: blocks.length
     };
@@ -179,15 +218,18 @@ export default function PageBuilder() {
   };
 
   const blockTypes = [
-    { type: 'hero', name: 'Hero', icon: Layout, color: 'emerald' },
-    { type: 'about', name: 'About', icon: Layers, color: 'blue' },
-    { type: 'stats', name: 'Stats', icon: CheckCircle2, color: 'purple' },
-    { type: 'cta', name: 'CTA', icon: Zap, color: 'amber' },
+    { type: 'hero', name: 'Home / Hero', icon: Layout, color: 'emerald' },
+    { type: 'about', name: 'About Us', icon: Layers, color: 'blue' },
+    { type: 'admission', name: 'Admission', icon: Zap, color: 'amber' },
+    { type: 'contact', name: 'Contact', icon: MousePointer2, color: 'slate' },
     { type: 'courses', name: 'Courses', icon: Globe, color: 'indigo' },
-    { type: 'testimonials', name: 'Testimonials', icon: Users, color: 'rose' },
+    { type: 'donation', name: 'Donation', icon: Heart, color: 'pink' },
+    { type: 'events', name: 'Events', icon: Target, color: 'rose' },
     { type: 'gallery', name: 'Gallery', icon: ImageIcon, color: 'cyan' },
-    { type: 'donation-banner', name: 'Donation', icon: Heart, color: 'pink' },
-    { type: 'form', name: 'Form', icon: MousePointer2, color: 'slate' },
+    { type: 'results', name: 'Results', icon: Sparkles, color: 'orange' },
+    { type: 'stats', name: 'Statistics', icon: CheckCircle2, color: 'purple' },
+    { type: 'testimonials', name: 'Testimonials', icon: Users, color: 'blue' },
+    { type: 'cta', name: 'Call to Action', icon: Zap, color: 'amber' },
   ];
 
   if (isLoading) {
@@ -239,7 +281,13 @@ export default function PageBuilder() {
             </button>
           </div>
           
-          <button onClick={() => saveMutation.mutate({})} disabled={saveMutation.isPending} className="flex items-center gap-2 px-4 md:px-10 py-2.5 md:py-3 bg-slate-900 text-white rounded-xl md:rounded-2xl hover:bg-black transition-all font-black shadow-xl shadow-slate-200 active:scale-95 disabled:opacity-50 text-[10px] md:text-sm uppercase tracking-widest whitespace-nowrap">
+          <button 
+            onClick={() => {
+              saveMutation.mutate({ isPublished: true });
+            }} 
+            disabled={saveMutation.isPending} 
+            className="flex items-center gap-2 px-4 md:px-10 py-2.5 md:py-3 bg-slate-900 text-white rounded-xl md:rounded-2xl hover:bg-black transition-all font-black shadow-xl shadow-slate-200 active:scale-95 disabled:opacity-50 text-[10px] md:text-sm uppercase tracking-widest whitespace-nowrap"
+          >
             <Save className="w-3.5 h-3.5 md:w-4.5 md:h-4.5" />
             <span>{saveMutation.isPending ? '...' : 'Publish'}</span>
           </button>
@@ -470,7 +518,9 @@ export default function PageBuilder() {
                 </div>
                 <div className="flex gap-3 md:gap-4 pt-4 md:pt-6">
                   <button onClick={() => setShowPageSettings(false)} className="flex-1 py-4 md:py-5 bg-slate-100 text-slate-500 rounded-2xl md:rounded-3xl font-black text-[11px] md:text-xs uppercase">Discard</button>
-                  <button onClick={() => saveMutation.mutate({})} className="flex-[2] py-4 md:py-5 bg-slate-900 text-white rounded-2xl md:rounded-3xl font-black text-[11px] md:text-xs uppercase shadow-2xl hover:bg-black transition-all flex items-center justify-center gap-2 md:gap-3">Save Changes</button>
+                  <button onClick={() => saveMutation.mutate({})} className="flex-[2] py-4 md:py-5 bg-slate-900 text-white rounded-2xl md:rounded-3xl font-black text-[11px] md:text-xs uppercase shadow-2xl hover:bg-black transition-all flex items-center justify-center gap-2 md:gap-3">
+                    {saveMutation.isPending ? 'Saving...' : 'Save Changes'}
+                  </button>
                 </div>
               </div>
             </motion.div>
