@@ -11,37 +11,37 @@ import { HeroSection } from '@/components/landing/HeroSection';
 // Lazy load below-the-fold sections with loading skeletons
 const TrustSection = dynamic(() => import('@/components/landing/TrustSection').then(mod => ({ default: mod.TrustSection })), {
   loading: () => <div className="h-32 bg-gray-50 animate-pulse" />,
-  ssr: true,
+  ssr: false,
 });
 
 const FeaturesSection = dynamic(() => import('@/components/landing/FeaturesSection').then(mod => ({ default: mod.FeaturesSection })), {
   loading: () => <div className="h-96 bg-gray-50 animate-pulse" />,
-  ssr: true,
+  ssr: false,
 });
 
 const HowItWorksSection = dynamic(() => import('@/components/landing/HowItWorksSection').then(mod => ({ default: mod.HowItWorksSection })), {
   loading: () => <div className="h-64 bg-gray-50 animate-pulse" />,
-  ssr: true,
+  ssr: false,
 });
 
 const BenefitsSection = dynamic(() => import('@/components/landing/BenefitsSection').then(mod => ({ default: mod.BenefitsSection })), {
   loading: () => <div className="h-80 bg-gray-50 animate-pulse" />,
-  ssr: true,
+  ssr: false,
 });
 
 const IslamicIdentitySection = dynamic(() => import('@/components/landing/IslamicIdentitySection').then(mod => ({ default: mod.IslamicIdentitySection })), {
   loading: () => <div className="h-48 bg-gray-50 animate-pulse" />,
-  ssr: true,
+  ssr: false,
 });
 
 const CtaSection = dynamic(() => import('@/components/landing/CtaSection').then(mod => ({ default: mod.CtaSection })), {
   loading: () => <div className="h-40 bg-gray-50 animate-pulse" />,
-  ssr: true,
+  ssr: false,
 });
 
 const Footer = dynamic(() => import('@/components/landing/Footer').then(mod => ({ default: mod.Footer })), {
   loading: () => <div className="h-40 bg-gray-900 animate-pulse" />,
-  ssr: true,
+  ssr: false,
 });
 
 export default function Home() {
