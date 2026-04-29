@@ -71,7 +71,7 @@ function PageCard({
             {page.isHomePage ? <Home className="w-6 h-6" /> : <Layout className="w-6 h-6" />}
         </div>
         
-        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity translate-x-2 group-hover:translate-x-0 transition-transform">
+        <div className="flex gap-1 opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 transition-all duration-300">
              {publicUrl && (
                 <a
                     href={publicUrl}
