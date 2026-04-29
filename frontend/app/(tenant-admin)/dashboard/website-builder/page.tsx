@@ -240,7 +240,7 @@ export default function WebsiteBuilderPage() {
     onError: (err: any) => showToast(err?.message || 'Failed to create page', 'error'),
   });
 
-  const pages = data?.data || [];
+  const pages = data?.data?.pages || [];
 
   const handleCreatePage = () => {
     const title = window.prompt('Enter page title:');

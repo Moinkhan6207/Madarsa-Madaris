@@ -4,7 +4,6 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '@lib/api';
 import { getOnboardingStatus } from '@services/onboarding.service';
 import { Loader2, Users, School, Calendar, MapPin, Settings, ArrowUpRight, TrendingUp, Sparkles, Plus, CheckCircle, ChevronRight } from 'lucide-react';
-import { motion } from 'framer-motion';
 
 function StatCard({ label, value, icon: Icon, color, trend, i }: { label: string; value: string | number; icon: any; color: string; trend?: string; i: number }) {
   const colorMap: any = {
@@ -15,11 +14,9 @@ function StatCard({ label, value, icon: Icon, color, trend, i }: { label: string
   };
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: i * 0.1 }}
-      className="bg-white rounded-3xl p-8 shadow-[0_8px_30px_rgb(0,0,0,0.02)] border border-slate-100 relative overflow-hidden group hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300"
+    <div 
+      className="bg-white rounded-3xl p-8 shadow-[0_8px_30px_rgb(0,0,0,0.02)] border border-slate-100 relative overflow-hidden group hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300 animate-fade-in-up"
+      style={{ animationDelay: `${i * 100}ms` }}
     >
       <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity">
         <ArrowUpRight className="w-5 h-5 text-slate-300" />
@@ -43,7 +40,7 @@ function StatCard({ label, value, icon: Icon, color, trend, i }: { label: string
           </div>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -54,17 +51,28 @@ export default function TenantDashboard() {
       const res = await api.get('/tenant/me');
       return res.data.data;
     },
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 
   const { data: onboarding, isLoading: onboardingLoading } = useQuery({
     queryKey: ['onboarding'],
     queryFn: getOnboardingStatus,
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 
   if (tenantLoading || onboardingLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
+        <div className="animate-pulse flex flex-col items-center gap-4">
+          <div className="w-12 h-12 bg-emerald-200 rounded-full"></div>
+          <div className="w-32 h-4 bg-slate-200 rounded"></div>
+        </div>
       </div>
     );
   }
@@ -77,13 +85,13 @@ export default function TenantDashboard() {
   ];
 
   return (
-    <div className="space-y-10">
-      {/* Welcome Header */}
-      <motion.header 
-        initial={{ opacity: 0, x: -20 }}
-        animate={{ opacity: 1, x: 0 }}
-        className="flex items-end justify-between"
-      >
+    <>
+      <AnimationStyles />
+      <div className="space-y-10">
+        {/* Welcome Header */}
+        <header 
+          className="flex items-end justify-between animate-fade-in-left"
+        >
         <div>
           <div className="flex items-center gap-2 mb-2">
             <Sparkles className="w-5 h-5 text-amber-500 fill-amber-500" />
@@ -107,7 +115,7 @@ export default function TenantDashboard() {
                 New Entry
             </button>
         </div>
-      </motion.header>
+      </header>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -118,11 +126,9 @@ export default function TenantDashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
         {/* Main Feed */}
-        <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-            className="lg:col-span-2 space-y-8"
+        <div 
+            className="lg:col-span-2 space-y-8 animate-fade-in-up"
+            style={{ animationDelay: '500ms' }}
         >
           <div className="bg-white rounded-[2rem] p-10 shadow-[0_8px_30px_rgb(0,0,0,0.02)] border border-slate-100">
             <div className="flex items-center justify-between mb-8">
@@ -151,14 +157,12 @@ export default function TenantDashboard() {
                 ))}
             </div>
           </div>
-        </motion.div>
+        </div>
         
         {/* Quick Actions Sidebar */}
-        <motion.div 
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.6 }}
-            className="space-y-8"
+        <div 
+            className="space-y-8 animate-fade-in-right"
+            style={{ animationDelay: '600ms' }}
         >
           <div className="bg-slate-900 rounded-[2rem] p-10 text-white shadow-2xl shadow-slate-200 relative overflow-hidden">
             <div className="absolute top-0 right-0 p-8 opacity-10">
@@ -188,8 +192,39 @@ export default function TenantDashboard() {
                ))}
             </div>
           </div>
-        </motion.div>
+        </div>
       </div>
     </div>
+    </>
   );
 }
+
+// CSS Animations - injected via styled-jsx
+const AnimationStyles = () => (
+  <style jsx global>{`
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeInLeft {
+      from { opacity: 0; transform: translateX(-20px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes fadeInRight {
+      from { opacity: 0; transform: translateX(20px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    .animate-fade-in-up {
+      animation: fadeInUp 0.5s ease-out forwards;
+      opacity: 0;
+    }
+    .animate-fade-in-left {
+      animation: fadeInLeft 0.5s ease-out forwards;
+      opacity: 0;
+    }
+    .animate-fade-in-right {
+      animation: fadeInRight 0.5s ease-out forwards;
+      opacity: 0;
+    }
+  `}</style>
+);

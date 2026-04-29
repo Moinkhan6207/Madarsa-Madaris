@@ -1,10 +1,30 @@
 'use client';
 
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { useEffect, useRef, useState } from 'react';
 import { Heart } from 'lucide-react';
 
 export function IslamicIdentitySection() {
+  const [isVisible, setIsVisible] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.1, rootMargin: '50px' }
+    );
+
+    if (ref.current) {
+      observer.observe(ref.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <section className="py-12 bg-[#f8faf9] text-gray-900 relative overflow-hidden border-y border-emerald-100/50">
       {/* Decorative subtle elements */}
@@ -12,12 +32,11 @@ export function IslamicIdentitySection() {
       <div className="absolute left-[-5%] bottom-[-10%] w-72 h-72 bg-emerald-100/40 rounded-full blur-3xl pointer-events-none" />
       
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.7 }}
-          className="flex flex-col items-center justify-center space-y-6"
+        <div
+          ref={ref}
+          className={`flex flex-col items-center justify-center space-y-6 transition-all duration-700 ${
+            isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'
+          }`}
         >
           <div className="w-16 h-16 rounded-full bg-white shadow-md border border-emerald-100 flex items-center justify-center mb-2">
             <Heart className="w-8 h-8 text-emerald-600 fill-emerald-50" />
@@ -37,7 +56,7 @@ export function IslamicIdentitySection() {
           <p className="text-gray-700 max-w-2xl text-lg leading-relaxed font-medium">
             We understand that Islamic institutions have different operational needs than standard schools. <span className="text-emerald-700 font-bold">IdaraSys</span> is crafted carefully to respect and digitalize these specific structures effectively.
           </p>
-        </motion.div>
+        </div>
       </div>
     </section>
   );

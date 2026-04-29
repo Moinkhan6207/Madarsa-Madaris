@@ -38,18 +38,20 @@ export class TenantController {
     }
   }
 
-  static async getMe(req: Request, res: Response, next: NextFunction) {
+  static async getMe(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const tenantId = req.context!.tenantId;
       
       if (!tenantId) {
-        return res.status(200).json({
+        res.status(200).json({
           success: true,
           data: null
         });
+        return;
       }
       
-      const result = await tenantService.getTenantById(tenantId as string);
+      // Use lightweight method for faster response
+      const result = await tenantService.getTenantMe(tenantId as string);
       
       res.status(200).json({
         success: true,

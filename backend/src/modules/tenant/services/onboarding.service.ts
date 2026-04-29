@@ -1,7 +1,11 @@
 import { PrismaClient } from '@prisma/client';
+import NodeCache from 'node-cache';
 import { AppError } from '../../../common/errors/AppError';
 import { emailService } from '../../../common/email/email.service';
 import { CmsService } from '../../cms/services/cms.service';
+
+// Cache for onboarding data - 10 minutes TTL
+const onboardingCache = new NodeCache({ stdTTL: 600, checkperiod: 120 });
 
 export class OnboardingService {
   private cmsService: CmsService;
@@ -11,6 +15,13 @@ export class OnboardingService {
   }
 
   async getOnboardingStatus(tenantId: string) {
+    // Check cache first
+    const cacheKey = `onboarding:${tenantId}`;
+    const cached = onboardingCache.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
     const status = await this.prisma.onboardingProgress.findUnique({
       where: { tenantId }
     });
@@ -19,7 +30,14 @@ export class OnboardingService {
       throw new AppError('Onboarding status not found', 404, 'ONBOARDING_NOT_FOUND');
     }
 
+    // Cache the result
+    onboardingCache.set(cacheKey, status);
     return status;
+  }
+
+  // Clear cache when onboarding is updated
+  clearOnboardingCache(tenantId: string) {
+    onboardingCache.del(`onboarding:${tenantId}`);
   }
 
   async updateStepStatus(tenantId: string, stepName: string, status: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'SKIPPED') {
@@ -35,6 +53,8 @@ export class OnboardingService {
       }
     });
 
+    // Clear cache after update
+    this.clearOnboardingCache(tenantId);
     return updated;
   }
 
@@ -78,6 +98,8 @@ export class OnboardingService {
       emailService.sendOnboardingCompletedEmail(result.users[0].email, result.displayName);
     }
 
+    // Clear cache after finalization
+    this.clearOnboardingCache(tenantId);
     return { finalized: true };
   }
 }

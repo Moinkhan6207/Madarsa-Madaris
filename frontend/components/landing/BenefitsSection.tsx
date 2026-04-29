@@ -1,33 +1,96 @@
 'use client';
 
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { useEffect, useRef, useState } from 'react';
 import { Clock, ShieldCheck, Zap, Database } from 'lucide-react';
 
 const benefits = [
   {
-    icon: <Clock className="w-5 h-5" />,
+    icon: Clock,
     title: 'Save Time',
     description: 'Automate repetitive tasks like fee reminders and attendance.',
   },
   {
-    icon: <Zap className="w-5 h-5" />,
+    icon: Zap,
     title: 'Reduce Manual Work',
     description: 'No more confusing spreadsheets or piles of paper registers.',
   },
   {
-    icon: <Database className="w-5 h-5" />,
+    icon: Database,
     title: 'Centralized System',
     description: 'Access everything from one dashboard, anywhere, anytime.',
   },
   {
-    icon: <ShieldCheck className="w-5 h-5" />,
+    icon: ShieldCheck,
     title: 'Secure Access',
     description: 'Role-based control to keep sensitive Madarsa data safe.',
   },
 ];
 
+function BenefitCard({ benefit, index }: { benefit: typeof benefits[0]; index: number }) {
+  const [isVisible, setIsVisible] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.1, rootMargin: '50px' }
+    );
+
+    if (ref.current) {
+      observer.observe(ref.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
+  const Icon = benefit.icon;
+
+  return (
+    <div
+      ref={ref}
+      className={`bg-primary-50/50 backdrop-blur-sm p-6 rounded-2xl border border-primary-100 hover:bg-white hover:shadow-xl hover:shadow-primary-600/5 transition-all duration-500 group ${
+        isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'
+      }`}
+      style={{ transitionDelay: `${index * 100}ms` }}
+    >
+      <div className="w-10 h-10 rounded-lg bg-white shadow-sm flex items-center justify-center text-primary-600 mb-4 group-hover:bg-primary-600 group-hover:text-white transition-colors">
+        <Icon className="w-5 h-5" />
+      </div>
+      <h3 className="text-xl font-bold text-gray-900 mb-2">{benefit.title}</h3>
+      <p className="text-gray-600 text-sm leading-relaxed">
+        {benefit.description}
+      </p>
+    </div>
+  );
+}
+
 export function BenefitsSection() {
+  const [headerVisible, setHeaderVisible] = useState(false);
+  const headerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setHeaderVisible(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (headerRef.current) {
+      observer.observe(headerRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <section id="benefits" className="py-10 bg-white text-gray-900 relative overflow-hidden">
       {/* Background light pattern */}
@@ -37,11 +100,11 @@ export function BenefitsSection() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="grid lg:grid-cols-2 gap-16 items-center">
-          <motion.div
-            initial={{ opacity: 0, x: -30 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
+          <div
+            ref={headerRef}
+            className={`transition-all duration-600 ${
+              headerVisible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-8'
+            }`}
           >
             <h2 className="text-3xl md:text-4xl font-bold mb-6 tracking-tight text-gray-900">
               Why transition to <span className="text-primary-600 border-b-4 border-primary-100">IdaraSys?</span>
@@ -54,26 +117,11 @@ export function BenefitsSection() {
               <div className="h-1 w-4 bg-primary-600/50 rounded" />
               <div className="h-1 w-2 bg-primary-600/20 rounded" />
             </div>
-          </motion.div>
+          </div>
 
           <div className="grid sm:grid-cols-2 gap-6">
             {benefits.map((benefit, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-                className="bg-primary-50/50 backdrop-blur-sm p-6 rounded-2xl border border-primary-100 hover:bg-white hover:shadow-xl hover:shadow-primary-600/5 transition-all group"
-              >
-                <div className="w-10 h-10 rounded-lg bg-white shadow-sm flex items-center justify-center text-primary-600 mb-4 group-hover:bg-primary-600 group-hover:text-white transition-colors">
-                  {benefit.icon}
-                </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">{benefit.title}</h3>
-                <p className="text-gray-600 text-sm leading-relaxed">
-                  {benefit.description}
-                </p>
-              </motion.div>
+              <BenefitCard key={index} benefit={benefit} index={index} />
             ))}
           </div>
         </div>

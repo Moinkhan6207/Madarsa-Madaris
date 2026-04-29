@@ -71,6 +71,11 @@ const startServer = async (): Promise<void> => {
     await connectDatabase();
     logger.info('Database connection established');
 
+    // Warmup database connection pool
+    const { prisma } = await import('./config/prisma.service');
+    await prisma.$queryRaw`SELECT 1`;
+    logger.info('Database connection pool warmed up');
+
     // Start HTTP server
     app.listen(PORT, () => {
       logger.info(`

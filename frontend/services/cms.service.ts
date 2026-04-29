@@ -44,7 +44,7 @@ export const cmsService = {
     apiClient.put<{ success: boolean; data: WebsiteSettings }>('/tenant/cms/settings', data),
   
   listPages: () => 
-    apiClient.get<{ success: boolean; data: Page[] }>('/tenant/cms/pages'),
+    apiClient.get<{ success: boolean; data: { pages: Page[]; total: number; page: number; limit: number } }>('/tenant/cms/pages'),
     
   getPage: (id: string) => 
     apiClient.get<{ success: boolean; data: Page }>(`/tenant/cms/pages/${id}`),

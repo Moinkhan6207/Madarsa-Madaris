@@ -384,6 +384,10 @@ model Page {
 
   @@unique([tenantId, slug])
   @@index([tenantId])
+  // Composite index for public page lookups
+  @@index([tenantId, isPublished, deletedAt, isHomePage])
+  // Index for slug lookups within tenant
+  @@index([tenantId, slug, isPublished, deletedAt])
 }
 
 model PageBlock {

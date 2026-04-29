@@ -16,17 +16,22 @@ declare global {
 // =============================================================================
 
 const createPrismaClient = (): PrismaClient => {
+  // Optimize connection settings for performance
+  const dbUrl = process.env.DATABASE_URL || '';
+  const separator = dbUrl.includes('?') ? '&' : '?';
+  // Optimized pool settings: pool_timeout=15 to wait briefly on cold start
+  const optimizedUrl = `${dbUrl}${separator}pgbouncer=true&connection_limit=20&pool_timeout=15`;
+
   const client = new PrismaClient({
     log: isDevelopment()
       ? [
-          { emit: 'event', level: 'query' },
           { emit: 'event', level: 'error' },
           { emit: 'event', level: 'warn' },
         ]
       : [{ emit: 'event', level: 'error' }],
     datasources: {
       db: {
-        url: `${process.env.DATABASE_URL}${process.env.DATABASE_URL?.includes('?') ? '&' : '?'}pgbouncer=true&connection_limit=10&pool_timeout=30`,
+        url: optimizedUrl,
       },
     },
   });
@@ -35,11 +40,12 @@ const createPrismaClient = (): PrismaClient => {
   // Logging Middleware
   // =============================================================================
 
-  if (isDevelopment()) {
-    client.$on('query', (e: { query: string; duration: number }) => {
-      logger.debug({ query: e.query, duration: e.duration }, 'Prisma Query');
-    });
-  }
+  // Query logging disabled for performance - re-enable only when debugging
+  // if (isDevelopment()) {
+  //   client.$on('query', (e: { query: string; duration: number }) => {
+  //     logger.debug({ query: e.query, duration: e.duration }, 'Prisma Query');
+  //   });
+  // }
 
   client.$on('error', (e: { message: string }) => {
     logger.error({ error: e.message }, 'Prisma Error');
@@ -47,10 +53,6 @@ const createPrismaClient = (): PrismaClient => {
 
   client.$on('warn', (e: { message: string }) => {
     logger.warn({ warning: e.message }, 'Prisma Warning');
-  });
-
-  client.$on('info', (e: { message: string; target: string }) => {
-    logger.info({ info: e.message, target: e.target }, 'Prisma Info');
   });
 
   // =============================================================================
@@ -136,31 +138,31 @@ const createPrismaClient = (): PrismaClient => {
   });
 
   // =============================================================================
-  // Audit Logging Middleware
+  // Audit Logging Middleware (Disabled for performance)
   // =============================================================================
 
-  client.$use(async (params, next) => {
-    const actionsToLog = ['create', 'update', 'delete', 'upsert', 'updateMany', 'deleteMany'];
+  // client.$use(async (params, next) => {
+  //   const actionsToLog = ['create', 'update', 'delete', 'upsert', 'updateMany', 'deleteMany'];
 
-    if (params.model && actionsToLog.includes(params.action)) {
-      const before = Date.now();
-      const result = await next(params);
-      const after = Date.now();
+  //   if (params.model && actionsToLog.includes(params.action)) {
+  //     const before = Date.now();
+  //     const result = await next(params);
+  //     const after = Date.now();
 
-      logger.debug(
-        {
-          model: params.model,
-          action: params.action,
-          duration: after - before,
-        },
-        'Database operation completed'
-      );
+  //     logger.debug(
+  //       {
+  //         model: params.model,
+  //         action: params.action,
+  //         duration: after - before,
+  //       },
+  //       'Database operation completed'
+  //     );
 
-      return result;
-    }
+  //     return result;
+  //   }
 
-    return next(params);
-  });
+  //   return next(params);
+  // });
 
   return client;
 };

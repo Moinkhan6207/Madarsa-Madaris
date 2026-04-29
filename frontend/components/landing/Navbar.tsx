@@ -73,12 +73,14 @@ export function Navbar() {
           <div className="hidden md:flex items-center gap-4">
             <Link
               href="/login"
+              prefetch={true}
               className="text-sm font-semibold text-gray-900 hover:text-primary-600 px-4 py-2 transition-colors"
             >
               Login
             </Link>
             <Link
               href="/register"
+              prefetch={true}
               className="text-sm font-semibold bg-primary-600 text-white px-5 py-2.5 rounded-full hover:bg-primary-700 hover:shadow-lg hover:shadow-primary-600/20 transition-all active:scale-95"
             >
               Get Started
@@ -183,6 +185,7 @@ export function Navbar() {
                   <nav>
                     <Link
                       href="/login"
+                      prefetch={true}
                       onClick={() => setMobileMenuOpen(false)}
                       className="flex items-center gap-4 px-6 py-4 hover:bg-gray-50 active:bg-gray-100 transition-colors border-b border-gray-50"
                     >
@@ -193,6 +196,7 @@ export function Navbar() {
                     </Link>
                     <Link
                       href="/register"
+                      prefetch={true}
                       onClick={() => setMobileMenuOpen(false)}
                       className="flex items-center gap-4 px-6 py-4 hover:bg-gray-50 active:bg-gray-100 transition-colors"
                     >

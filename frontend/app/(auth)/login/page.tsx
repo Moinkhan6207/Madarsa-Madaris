@@ -11,7 +11,6 @@ import { login } from '@services/auth.service';
 import { FormField, inputClass, Alert, PasswordInput } from '@components/ui/FormElements';
 import { Loader2, LogIn, Mail, ChevronRight } from 'lucide-react';
 import { TenantStatus } from '@/types/tenant';
-import { motion } from 'framer-motion';
 
 const schema = z.object({
   email: z.string().email('Invalid email address'),
@@ -63,11 +62,7 @@ export default function LoginPage() {
   });
 
   return (
-    <motion.div
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.5, delay: 0.2 }}
-    >
+    <div className="animate-fade-in-right">
       <div className="mb-6 text-center lg:text-left">
         <h1 className="text-4xl font-black text-gray-900 tracking-tight mb-2">
           Welcome <span className="text-emerald-600">Back</span>
@@ -79,12 +74,9 @@ export default function LoginPage() {
 
       <div className="bg-white p-8 lg:p-10 rounded-3xl shadow-xl shadow-gray-200/50 border border-gray-100">
         {error && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-          >
+          <div className="animate-fade-in">
             <Alert type="error" message={error} className="mb-8" />
-          </motion.div>
+          </div>
         )}
         
         <form onSubmit={handleSubmit((d) => mutation.mutate(d))} className="space-y-6">
@@ -162,6 +154,6 @@ export default function LoginPage() {
           <ChevronRight className="w-4 h-4 ml-2" />
         </Link>
       </div>
-    </motion.div>
+    </div>
   );
 }

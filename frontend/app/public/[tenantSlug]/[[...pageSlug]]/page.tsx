@@ -2,29 +2,58 @@ import React from 'react';
 import { Metadata } from 'next';
 import PublicRenderer from '@/components/cms/PublicRenderer';
 
+// Cache duration - 5 minutes in production
+const REVALIDATE_SECONDS = process.env.NODE_ENV === 'production' ? 300 : 0;
+
+// Simple in-memory cache for metadata generation
+let metadataCache: Record<string, { data: any; timestamp: number }> = {};
+const METADATA_CACHE_TTL = 30000; // 30 seconds
+
 async function getPageData(tenantSlug: string, pageSlug: string) {
   const apiUrl = process.env.NEXT_PUBLIC_INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api/v1';
   
   try {
     const res = await fetch(`${apiUrl}/public/website/${tenantSlug}/${pageSlug}`, { 
-      next: { revalidate: process.env.NODE_ENV === 'production' ? 60 : 0 }
+      next: { revalidate: REVALIDATE_SECONDS },
+      ...(REVALIDATE_SECONDS > 0 && {
+        cache: 'force-cache',
+      }),
     });
 
     if (!res.ok) {
       if (res.status === 404) return { success: false, notFound: true };
       throw new Error(`Failed to fetch page data: ${res.statusText}`);
     }
-    return res.json();
+    
+    const data = await res.json();
+    return data;
   } catch (e) {
     console.error('Fetch error:', e);
     return { success: false, error: true };
   }
 }
 
+// Cached version for metadata generation
+async function getPageDataCached(tenantSlug: string, pageSlug: string) {
+  const cacheKey = `${tenantSlug}:${pageSlug}`;
+  const cached = metadataCache[cacheKey];
+  
+  if (cached && Date.now() - cached.timestamp < METADATA_CACHE_TTL) {
+    return cached.data;
+  }
+  
+  const data = await getPageData(tenantSlug, pageSlug);
+  if (data?.success) {
+    metadataCache[cacheKey] = { data, timestamp: Date.now() };
+  }
+  return data;
+}
+
 export async function generateMetadata({ params }: any): Promise<Metadata> {
   const { tenantSlug, pageSlug } = await params;
   const slug = (pageSlug && pageSlug.length > 0) ? pageSlug[pageSlug.length - 1] : 'home';
-  const result = await getPageData(tenantSlug, slug);
+  // Use cached version to avoid duplicate requests
+  const result = await getPageDataCached(tenantSlug, slug);
 
   if (!result?.success || !result.data) return { title: 'Institution Website' };
 
@@ -70,7 +99,7 @@ export default async function PublicPage({ params }: any) {
            <div className="text-[12rem] font-black text-gray-50 leading-none mb-4 select-none">404</div>
            <h1 className="text-3xl font-black text-gray-900 tracking-tight -mt-20 relative z-10">PAGE NOT FOUND</h1>
            <p className="text-gray-500 mt-6 font-medium leading-relaxed">
-             The page "{slug}" you are looking for doesn't exist or has been moved to a new destination.
+             The page &ldquo;{slug}&rdquo; you are looking for doesn&apos;t exist or has been moved to a new destination.
            </p>
            <a 
             href={`/public/${tenantSlug}`} 
@@ -98,3 +127,6 @@ export default async function PublicPage({ params }: any) {
     />
   );
 }
+
+// ISR: Revalidate pages every 5 minutes
+export const revalidate = 300;

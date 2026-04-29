@@ -1,10 +1,14 @@
 import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import NodeCache from 'node-cache';
 import { AppError } from '../../../common/errors/AppError';
 import { CreateTenantDto } from '../dto/tenant.dto';
 import { logger } from '../../../common/logger/logger';
 
 import { emailService } from '../../../common/email/email.service';
+
+// Cache for tenant data - 10 minutes TTL
+const tenantCache = new NodeCache({ stdTTL: 600, checkperiod: 120 });
 
 export class TenantService {
   constructor(private readonly prisma: PrismaClient) {}
@@ -205,6 +209,13 @@ export class TenantService {
   }
 
   async getTenantById(id: string) {
+    // Check cache first
+    const cacheKey = `tenant:${id}`;
+    const cached = tenantCache.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
     const tenant = await this.prisma.tenant.findUnique({
       where: { id },
       include: {
@@ -220,7 +231,97 @@ export class TenantService {
       throw new AppError('Tenant not found', 404, 'TENANT_NOT_FOUND');
     }
 
+    // Cache the result
+    tenantCache.set(cacheKey, tenant);
     return tenant;
+  }
+
+  // Lightweight version for /me endpoint - only essential fields
+  async getTenantMe(id: string) {
+    // Check cache first
+    const cacheKey = `tenant:me:${id}`;
+    const cached = tenantCache.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        slug: true,
+        displayName: true,
+        status: true,
+        institutionType: true,
+        primaryEmail: true,
+        primaryPhone: true,
+        createdAt: true,
+        updatedAt: true,
+        profile: {
+          select: {
+            shortName: true,
+            trustName: true,
+            city: true,
+            state: true,
+          }
+        },
+        settings: {
+          select: {
+            primaryLanguage: true,
+            timezone: true,
+            currencyCode: true,
+          }
+        },
+        branding: {
+          select: {
+            logoUrl: true,
+            primaryColor: true,
+          }
+        },
+        onboarding: {
+          select: {
+            accountStep: true,
+            profileStep: true,
+            brandingStep: true,
+            branchStep: true,
+            sessionStep: true,
+            adminStep: true,
+            finalizationStep: true,
+            completedAt: true,
+          }
+        },
+        subscriptions: {
+          where: { isCurrent: true },
+          take: 1,
+          select: {
+            id: true,
+            startsAt: true,
+            endsAt: true,
+            plan: {
+              select: {
+                id: true,
+                code: true,
+                name: true,
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (!tenant) {
+      throw new AppError('Tenant not found', 404, 'TENANT_NOT_FOUND');
+    }
+
+    // Cache for 10 minutes
+    tenantCache.set(cacheKey, tenant);
+    return tenant;
+  }
+
+  // Clear cache when tenant is updated
+  clearTenantCache(id: string) {
+    tenantCache.del(`tenant:${id}`);
+    tenantCache.del(`tenant:me:${id}`);
   }
 
   async getAllTenants(params: { page?: number; limit?: number; search?: string; status?: any }) {

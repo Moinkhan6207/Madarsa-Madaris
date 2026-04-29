@@ -1,6 +1,10 @@
 import { PrismaClient } from '@prisma/client';
+import NodeCache from 'node-cache';
 import { AppError } from '../../../common/errors/AppError';
 import { CmsValidationService } from './cms-validation.service';
+
+// Cache for CMS data - 10 minutes TTL
+const cmsCache = new NodeCache({ stdTTL: 600, checkperiod: 120 });
 
 export class CmsService {
   constructor(private readonly prisma: PrismaClient) {}
@@ -32,11 +36,59 @@ export class CmsService {
 
   // ─── Pages ───────────────────────────────────────────────────────────────────
 
-  async listPages(tenantId: string) {
-    return this.prisma.page.findMany({
-      where: { tenantId, deletedAt: null },
-      orderBy: { createdAt: 'desc' }
-    });
+  async listPages(tenantId: string, params?: { page?: number; limit?: number; search?: string }) {
+    const page = Number(params?.page) || 1;
+    const limit = Number(params?.limit) || 20;
+    const skip = (page - 1) * limit;
+
+    // Check cache first
+    const cacheKey = `pages:${tenantId}:${page}:${limit}:${params?.search || ''}`;
+    const cached = cmsCache.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    const where: any = { tenantId, deletedAt: null };
+    if (params?.search) {
+      where.OR = [
+        { title: { contains: params.search, mode: 'insensitive' } },
+        { slug: { contains: params.search, mode: 'insensitive' } }
+      ];
+    }
+
+    const [pages, total] = await Promise.all([
+      this.prisma.page.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { updatedAt: 'desc' },
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          isPublished: true,
+          isHomePage: true,
+          createdAt: true,
+          updatedAt: true,
+          _count: {
+            select: { blocks: true }
+          }
+        }
+      }),
+      this.prisma.page.count({ where })
+    ]);
+
+    const result = { pages, total, page, limit };
+    
+    // Cache the result
+    cmsCache.set(cacheKey, result);
+    return result;
+  }
+
+  // Clear cache when pages are modified
+  clearPagesCache(tenantId: string) {
+    const keys = cmsCache.keys().filter(key => key.startsWith(`pages:${tenantId}`));
+    cmsCache.del(keys);
   }
 
   async getPage(tenantId: string, id: string) {
@@ -70,7 +122,7 @@ export class CmsService {
       throw new AppError('A page with this slug already exists', 400, 'DUPLICATE_SLUG');
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       // If setting as homepage, unset all others
       if ((pageData as any).isHomePage) {
         await tx.page.updateMany({
@@ -101,6 +153,10 @@ export class CmsService {
 
       return page;
     });
+
+    // Clear cache after creation
+    this.clearPagesCache(tenantId);
+    return result;
   }
 
   async updatePage(tenantId: string, id: string, data: any) {
@@ -108,7 +164,7 @@ export class CmsService {
     const validatedData = CmsValidationService.validateUpdatePage(data);
     const { blocks, ...pageData } = validatedData;
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       // If setting as homepage, unset all others
       if ((pageData as any).isHomePage) {
         await tx.page.updateMany({
@@ -152,6 +208,10 @@ export class CmsService {
 
       return updatedPage;
     });
+
+    // Clear cache after update
+    this.clearPagesCache(tenantId);
+    return result;
   }
 
   async deletePage(tenantId: string, id: string) {
@@ -163,10 +223,14 @@ export class CmsService {
       throw new AppError('Page not found', 404, 'PAGE_NOT_FOUND');
     }
 
-    return this.prisma.page.update({
+    const result = await this.prisma.page.update({
       where: { id },
       data: { deletedAt: new Date() }
     });
+
+    // Clear cache after deletion
+    this.clearPagesCache(tenantId);
+    return result;
   }
 
   // ─── Bootstrap ──────────────────────────────────────────────────────────────

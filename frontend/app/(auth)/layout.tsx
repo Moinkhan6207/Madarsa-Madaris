@@ -4,20 +4,21 @@ import React from 'react';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import Image from 'next/image';
-import { motion } from 'framer-motion';
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-white flex overflow-hidden">
       {/* Left Side: Illustration & Branding (Hidden on mobile) */}
       <div className="hidden lg:flex lg:w-1/2 relative bg-emerald-950 items-center justify-center overflow-hidden">
-        {/* Background Image */}
+        {/* Background Image - Optimized */}
         <Image 
-          src="https://images.unsplash.com/photo-1591604129939-f1efa4d9f7fa?auto=format&fit=crop&q=80" 
+          src="https://images.unsplash.com/photo-1591604129939-f1efa4d9f7fa?w=800&q=60&auto=format&fit=crop" 
           alt="Islamic Architecture" 
           fill
           className="object-cover opacity-20 mix-blend-luminosity"
           priority
+          sizes="50vw"
+          quality={60}
         />
         
         {/* Decorative elements */}
@@ -26,21 +27,23 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-primary-500/20 rounded-full blur-[120px] -ml-32 -mb-32" />
 
         {/* Desktop Kalma - Centered at top */}
-        <div className="absolute top-10 left-0 right-0 opacity-60 z-20 text-center">
+        <div className="absolute top-10 left-0 right-0 opacity-60 z-20 text-center animate-fade-in">
             <span className="text-2xl font-serif text-white font-bold arabic-text tracking-widest" dir="rtl">
                 لَا إِلٰهَ إِلَّا ٱلله مُحَمَّدٌ رَسُولُ ٱلله
             </span>
         </div>
 
         <div className="relative z-10 p-12 max-w-xl text-white">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-          >
+          <div className="animate-fade-in-up">
             <div className="mb-8 flex items-center justify-center lg:justify-start">
                 <div className="bg-white p-2 rounded-2xl shadow-2xl">
-                    <Image src="/assets/makka_sharif.png" alt="Logo" width={48} height={48} />
+                    <Image 
+                      src="/assets/makka_sharif.png" 
+                      alt="Logo" 
+                      width={48} 
+                      height={48}
+                      priority
+                    />
                 </div>
                 <span className="ml-4 text-3xl font-black tracking-tight text-white">IdaraSys</span>
             </div>
@@ -64,7 +67,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
                     Trusted by 50+ Institutions
                 </span>
             </div>
-          </motion.div>
+          </div>
         </div>
       </div>
 
@@ -100,6 +103,32 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           </div>
         </div>
       </div>
+
+      {/* CSS Animations */}
+      <style jsx global>{`
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes fadeInUp {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeInRight {
+          from { opacity: 0; transform: translateX(20px); }
+          to { opacity: 1; transform: translateX(0); }
+        }
+        .animate-fade-in {
+          animation: fadeIn 0.5s ease-out forwards;
+        }
+        .animate-fade-in-up {
+          animation: fadeInUp 0.8s ease-out forwards;
+        }
+        .animate-fade-in-right {
+          animation: fadeInRight 0.5s ease-out 0.1s forwards;
+          opacity: 0;
+        }
+      `}</style>
     </div>
   );
 }

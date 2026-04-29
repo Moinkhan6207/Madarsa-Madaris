@@ -1,7 +1,6 @@
 'use client';
 
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { useEffect, useRef, useState } from 'react';
 import { 
   Users, 
   Wallet, 
@@ -13,36 +12,84 @@ import {
 
 const features = [
   {
-    icon: <Users className="w-6 h-6" />,
+    icon: Users,
     title: 'Student Management',
     description: 'Complete digital records for admissions, documents, and student history.',
   },
   {
-    icon: <Wallet className="w-6 h-6" />,
+    icon: Wallet,
     title: 'Fee & Donation Tracking',
     description: 'Automated fee collection, receipt generation, and donation records.',
   },
   {
-    icon: <CalendarCheck className="w-6 h-6" />,
+    icon: CalendarCheck,
     title: 'Attendance System',
     description: 'Daily tracking for students and staff with instant SMS alerts.',
   },
   {
-    icon: <GitMerge className="w-6 h-6" />,
+    icon: GitMerge,
     title: 'Multi-Branch Support',
     description: 'Manage all your Madarsa branches from a single unified dashboard.',
   },
   {
-    icon: <MessageSquare className="w-6 h-6" />,
+    icon: MessageSquare,
     title: 'Parent Communication',
     description: 'Seamlessly broadcast updates and academic reports to parents.',
   },
   {
-    icon: <BarChart3 className="w-6 h-6" />,
+    icon: BarChart3,
     title: 'Reports & Analytics',
     description: 'Data-driven insights to help optimize your institution\'s operations.',
   },
 ];
+
+function FeatureCard({ feature, index }: { feature: typeof features[0]; index: number }) {
+  const [isVisible, setIsVisible] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.1, rootMargin: '50px' }
+    );
+
+    if (ref.current) {
+      observer.observe(ref.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
+  const Icon = feature.icon;
+
+  return (
+    <div
+      ref={ref}
+      className={`bg-white p-8 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-500 group relative overflow-hidden ${
+        isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'
+      }`}
+      style={{ transitionDelay: `${index * 100}ms` }}
+    >
+      {/* Hover gradient effect */}
+      <div className="absolute inset-0 bg-gradient-to-br from-primary-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+      
+      <div className="relative z-10">
+        <div className="w-12 h-12 rounded-xl bg-primary-100 text-primary-600 flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-primary-600 group-hover:text-white transition-all">
+          <Icon className="w-6 h-6" />
+        </div>
+        <h3 className="text-xl font-bold text-gray-900 mb-3">{feature.title}</h3>
+        <p className="text-gray-600 leading-relaxed">
+          {feature.description}
+        </p>
+      </div>
+    </div>
+  );
+}
 
 export function FeaturesSection() {
   return (
@@ -59,27 +106,7 @@ export function FeaturesSection() {
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
           {features.map((feature, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: index * 0.1 }}
-              className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow group relative overflow-hidden"
-            >
-              {/* Hover gradient effect */}
-              <div className="absolute inset-0 bg-gradient-to-br from-primary-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              
-              <div className="relative z-10">
-                <div className="w-12 h-12 rounded-xl bg-primary-100 text-primary-600 flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-primary-600 group-hover:text-white transition-all">
-                  {feature.icon}
-                </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-3">{feature.title}</h3>
-                <p className="text-gray-600 leading-relaxed">
-                  {feature.description}
-                </p>
-              </div>
-            </motion.div>
+            <FeatureCard key={index} feature={feature} index={index} />
           ))}
         </div>
       </div>

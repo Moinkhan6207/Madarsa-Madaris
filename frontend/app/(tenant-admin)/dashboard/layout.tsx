@@ -1,6 +1,5 @@
 'use client';
 
-import { motion, AnimatePresence } from 'framer-motion';
 import { 
   LayoutDashboard, 
   Users, 
@@ -79,11 +78,10 @@ export default function TenantDashboardLayout({ children }: { children: React.Re
         {navItems.map((item, i) => {
           const isActive = pathname === item.href;
           return (
-            <motion.div
+            <div
               key={item.name}
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.05 }}
+              className="animate-slide-in-left"
+              style={{ animationDelay: `${i * 50}ms` }}
             >
               <Link
                 href={item.href as any}
@@ -96,7 +94,7 @@ export default function TenantDashboardLayout({ children }: { children: React.Re
                 <item.icon className={`w-5 h-5 transition-colors ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-slate-600'}`} />
                 {item.name}
               </Link>
-            </motion.div>
+            </div>
           );
         })}
       </nav>
@@ -133,22 +131,14 @@ export default function TenantDashboardLayout({ children }: { children: React.Re
       </aside>
 
       {/* Mobile Drawer Overlay */}
-      <AnimatePresence>
-        {isMobileMenuOpen && (
+      {isMobileMenuOpen && (
           <>
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+            <div 
+              className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[40] lg:hidden animate-fade-in"
               onClick={() => setIsMobileMenuOpen(false)}
-              className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[40] lg:hidden"
             />
-            <motion.aside 
-              initial={{ x: '-100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '-100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed top-0 left-0 bottom-0 w-[280px] bg-white z-[50] lg:hidden flex flex-col shadow-2xl"
+            <aside 
+              className="fixed top-0 left-0 bottom-0 w-[280px] bg-white z-[50] lg:hidden flex flex-col shadow-2xl animate-slide-in-left"
             >
               <div className="absolute top-6 right-[-12px] lg:hidden">
                 <button 
@@ -159,10 +149,9 @@ export default function TenantDashboardLayout({ children }: { children: React.Re
                 </button>
               </div>
               <SidebarContent />
-            </motion.aside>
+            </aside>
           </>
         )}
-      </AnimatePresence>
 
       {/* Main Viewport */}
       <div className="flex-1 flex flex-col h-screen overflow-hidden">
@@ -233,6 +222,21 @@ export default function TenantDashboardLayout({ children }: { children: React.Re
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
           background: #cbd5e1;
+        }
+        @keyframes slideInLeft {
+          from { opacity: 0; transform: translateX(-10px); }
+          to { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        .animate-slide-in-left {
+          animation: slideInLeft 0.3s ease-out forwards;
+          opacity: 0;
+        }
+        .animate-fade-in {
+          animation: fadeIn 0.2s ease-out forwards;
         }
       `}</style>
     </div>

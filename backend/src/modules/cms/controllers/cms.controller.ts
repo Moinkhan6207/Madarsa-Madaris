@@ -37,7 +37,12 @@ export class CmsPageController {
   static async list(req: Request, res: Response, next: NextFunction) {
     try {
       const tenantId = req.context!.tenantId!;
-      const data = await cmsService.listPages(tenantId);
+      const { page, limit, search } = req.query;
+      const data = await cmsService.listPages(tenantId, {
+        page: page ? Number(page) : 1,
+        limit: limit ? Number(limit) : 20,
+        search: search as string
+      });
       res.json({ success: true, data });
     } catch (e) { next(e); }
   }
@@ -72,7 +77,7 @@ export class CmsPageController {
       }
 
       const data = await cmsService.updatePage(tenantId, id as string, req.body);
-      console.log(`[DEBUG] Update successful. Page slug: ${data.slug}. Blocks count in response:`, data.blocks?.length);
+      console.log(`[DEBUG] Update successful. Page slug: ${data.slug}. Blocks count in response:`, (data as any).blocks?.length);
 
       // Clear public page cache so updates are immediately live
       const tenant = await prisma.tenant.findUnique({ where: { id: tenantId }, select: { slug: true } });

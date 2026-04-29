@@ -2,9 +2,18 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
 import { ArrowRight, CheckCircle2 } from 'lucide-react';
 import Image from 'next/image';
+
+// Lightweight CSS animation instead of framer-motion for initial load
+const fadeInUpStyle = {
+  animation: 'fadeInUp 0.6s ease-out forwards',
+};
+
+const fadeInScaleStyle = {
+  animation: 'fadeInScale 0.8s ease-out 0.2s forwards',
+  opacity: 0,
+};
 
 export function HeroSection() {
   return (
@@ -13,23 +22,22 @@ export function HeroSection() {
       <div className="absolute inset-0 z-0">
         <div className="absolute inset-0 bg-white/95 z-10 backdrop-blur-sm" />
         <Image 
-          src="https://images.unsplash.com/photo-1565552645632-d725f8bfc19a?auto=format&fit=crop&q=80" 
+          src="https://images.unsplash.com/photo-1565552645632-d725f8bfc19a?w=1200&q=80&auto=format&fit=crop" 
           alt="Kaaba Background" 
           fill
           className="object-cover opacity-30"
           priority
+          sizes="100vw"
+          quality={80}
         />
-
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-20">
         <div className="grid lg:grid-cols-2 gap-10 lg:gap-8 items-center">
           
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
+          <div 
             className="max-w-2xl bg-white/60 backdrop-blur-md p-6 sm:p-8 rounded-3xl border border-white/50 shadow-sm"
+            style={fadeInUpStyle}
           >
             <div className="text-center sm:text-left mb-6">
               <span className="text-xl md:text-2xl font-serif text-primary-700 font-bold arabic-text tracking-widest drop-shadow-sm" dir="rtl">
@@ -53,6 +61,7 @@ export function HeroSection() {
             <div className="flex flex-col sm:flex-row gap-4 mb-8">
               <Link
                 href="/register"
+                prefetch={true}
                 className="inline-flex justify-center items-center gap-2 bg-primary-600 text-white px-8 py-4 rounded-xl font-bold hover:bg-primary-700 hover:shadow-xl hover:shadow-primary-600/20 active:scale-95 transition-all text-lg group"
               >
                 Get Started
@@ -60,6 +69,7 @@ export function HeroSection() {
               </Link>
               <Link
                 href="/login"
+                prefetch={true}
                 className="inline-flex justify-center items-center gap-2 bg-white text-gray-800 border-2 border-gray-300 px-8 py-4 rounded-xl font-bold hover:border-primary-500 hover:text-primary-700 active:scale-95 transition-all text-lg shadow-sm"
               >
                 Login
@@ -76,13 +86,11 @@ export function HeroSection() {
                 <span>Setup in 5 minutes</span>
               </div>
             </div>
-          </motion.div>
+          </div>
 
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
+          <div
             className="relative lg:ml-auto w-full"
+            style={fadeInScaleStyle}
           >
             {/* Soft background glow */}
             <div className="absolute inset-0 bg-primary-500/20 rounded-full blur-3xl" />
@@ -90,10 +98,13 @@ export function HeroSection() {
             <div className="relative rounded-3xl bg-white/80 backdrop-blur-xl border border-white/60 shadow-2xl p-2 lg:p-3 overflow-hidden">
               <div className="rounded-2xl overflow-hidden border border-gray-200/50 aspect-[4/3] relative">
                 <Image 
-                  src="https://images.unsplash.com/photo-1591604129939-f1efa4d9f7fa?auto=format&fit=crop&q=80" 
+                  src="https://images.unsplash.com/photo-1591604129939-f1efa4d9f7fa?w=800&q=80&auto=format&fit=crop" 
                   alt="Masjid an-Nabawi" 
                   fill
                   className="object-cover hover:scale-105 transition-transform duration-700"
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 600px"
+                  quality={80}
+                  loading="eager"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-gray-900/60 to-transparent" />
                 <div className="absolute bottom-4 left-4 right-4 text-white">
@@ -102,10 +113,34 @@ export function HeroSection() {
                 </div>
               </div>
             </div>
-          </motion.div>
+          </div>
           
         </div>
       </div>
+
+      {/* Inline critical CSS animation keyframes */}
+      <style jsx>{`
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        @keyframes fadeInScale {
+          from {
+            opacity: 0;
+            transform: scale(0.95);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1);
+          }
+        }
+      `}</style>
     </section>
   );
 }

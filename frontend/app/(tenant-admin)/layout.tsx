@@ -28,8 +28,11 @@ export default function TenantAdminLayout({ children }: { children: React.ReactN
       return res.data.data;
     },
     retry: 1,
-    // Low stale time to ensure we catch activation quickly
-    staleTime: 30000,
+    // Increased stale time - backend now has caching
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 
   useEffect(() => {
