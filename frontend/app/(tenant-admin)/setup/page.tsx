@@ -1,10 +1,13 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, startTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { getOnboardingStatus } from '@services/onboarding.service';
 import { Loader2 } from 'lucide-react';
+
+// Prevent prerendering during build to avoid QueryClient errors
+export const dynamic = 'force-dynamic';
 
 export default function SetupRedirect() {
   const router = useRouter();
@@ -19,15 +22,15 @@ export default function SetupRedirect() {
 
     // Redirection logic based on status
     if (status.profileStep === 'NOT_STARTED' || status.profileStep === 'IN_PROGRESS') {
-      router.replace('/setup/profile');
+      startTransition(() => router.replace('/setup/profile'));
     } else if (status.brandingStep === 'NOT_STARTED' || status.brandingStep === 'IN_PROGRESS') {
-      router.replace('/setup/branding');
+      startTransition(() => router.replace('/setup/branding'));
     } else if (status.branchStep === 'NOT_STARTED' || status.branchStep === 'IN_PROGRESS') {
-      router.replace('/setup/branches');
+      startTransition(() => router.replace('/setup/branches'));
     } else if (status.sessionStep === 'NOT_STARTED' || status.sessionStep === 'IN_PROGRESS') {
-      router.replace('/setup/session');
+      startTransition(() => router.replace('/setup/session'));
     } else {
-      router.replace('/setup/review');
+      startTransition(() => router.replace('/setup/review'));
     }
   }, [status, isLoading, router]);
 
@@ -47,8 +50,13 @@ export default function SetupRedirect() {
 
   return (
     <div className="flex h-screen flex-col items-center justify-center gap-4">
-      <Loader2 className="w-12 h-12 animate-spin text-emerald-600" />
-      <p className="text-sm text-gray-500 font-medium">Loading your setup progress...</p>
+      <div className="text-center space-y-4">
+        <div className="w-16 h-16 bg-emerald-100 rounded-full mx-auto animate-pulse flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
+        </div>
+        <div className="h-4 w-40 bg-gray-200 rounded animate-pulse mx-auto"></div>
+        <div className="h-3 w-56 bg-gray-100 rounded animate-pulse mx-auto"></div>
+      </div>
     </div>
   );
 }

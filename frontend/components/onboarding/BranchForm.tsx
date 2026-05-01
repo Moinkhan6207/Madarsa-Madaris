@@ -9,17 +9,18 @@ import { Trash2, PlusCircle, MapPin, Star } from 'lucide-react';
 import { getBranches, createBranch, deleteBranch, updateOnboardingStep } from '@services/onboarding.service';
 import { FormField, inputClass, Alert, SectionCard, SkeletonLoader } from '@components/ui/FormElements';
 import type { Branch } from '@/types/onboarding';
+import { useState, useEffect } from 'react';
 
 const schema = z.object({
   name: z.string().min(2, 'Branch name is required'),
-  code: z.string().optional().or(z.literal('')),
-  headName: z.string().optional().or(z.literal('')),
-  phone: z.string().optional().or(z.literal('')),
-  email: z.string().email('Must be a valid email').optional().or(z.literal('')),
-  addressLine1: z.string().optional().or(z.literal('')),
-  city: z.string().optional().or(z.literal('')),
-  state: z.string().optional().or(z.literal('')),
-  isPrimary: z.boolean(),
+  code: z.string().optional(),
+  headName: z.string().optional(),
+  phone: z.string().optional(),
+  email: z.union([z.string().email('Must be a valid email'), z.literal('')]).optional(),
+  addressLine1: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  isPrimary: z.boolean().default(false),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -59,25 +60,117 @@ function BranchCard({ branch, onDelete }: { branch: Branch; onDelete: (id: strin
 
 export function BranchForm() {
   const router = useRouter();
+  const [isMounted, setIsMounted] = useState(false);
+
   const queryClient = useQueryClient();
 
-  const { data: branches = [], isLoading } = useQuery({
+  const { data: branchesData, isLoading } = useQuery({
     queryKey: ['branches'],
     queryFn: getBranches,
+    enabled: isMounted,
   });
 
+  const branches = Array.isArray(branchesData)
+    ? branchesData
+    : Array.isArray((branchesData as any)?.data)
+      ? (branchesData as any).data
+      : [];
   const hasPrimary = branches.some((b) => b.isPrimary);
 
-  const { register, handleSubmit, reset, watch, formState: { errors } } = useForm<FormValues>({
+  const { register, handleSubmit, reset, watch, getValues, setError, clearErrors, setValue, trigger, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema as any),
+    mode: 'onSubmit',
     defaultValues: { isPrimary: !hasPrimary },
   });
 
+  useEffect(() => {
+    if (hasPrimary) {
+      setValue('isPrimary', false, { shouldValidate: false, shouldDirty: false });
+    }
+  }, [hasPrimary, setValue]);
+
   const createMutation = useMutation({
-    mutationFn: (data: FormValues) => createBranch({ ...data, isPrimary: data.isPrimary } as any),
+    mutationFn: async (data: FormValues) => {
+      const normalizedName = data.name.trim();
+      const normalizedCode = data.code?.trim();
+      const normalizedNameKey = normalizedName.toLowerCase();
+      const normalizedCodeKey = normalizedCode?.toLowerCase();
+
+      const duplicateByName = branches.some((b) => (b.name || '').trim().toLowerCase() === normalizedNameKey);
+      const duplicateByCode = normalizedCodeKey
+        ? branches.some((b) => (b.code || '').trim().toLowerCase() === normalizedCodeKey)
+        : false;
+
+      if (duplicateByName || duplicateByCode) {
+        const err = new Error('A branch with this name or code already exists. Please use a unique name/code.') as Error & { code?: string };
+        err.code = 'DUPLICATE_RECORD_LOCAL';
+        throw err;
+      }
+
+      const effectiveIsPrimary = hasPrimary ? false : data.isPrimary;
+
+      if (effectiveIsPrimary && hasPrimary) {
+        const err = new Error('A primary branch already exists. Uncheck "Set as Primary Branch" to add this as a regular branch.') as Error & { code?: string };
+        err.code = 'PRIMARY_BRANCH_EXISTS';
+        throw err;
+      }
+
+      const payload = {
+        ...data,
+        name: normalizedName,
+        code: normalizedCode || undefined,
+        headName: data.headName?.trim() || undefined,
+        phone: data.phone?.trim() || undefined,
+        email: data.email?.trim() || undefined,
+        addressLine1: data.addressLine1?.trim() || undefined,
+        city: data.city?.trim() || undefined,
+        state: data.state?.trim() || undefined,
+        isPrimary: effectiveIsPrimary,
+      };
+      return createBranch(payload as any);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['branches'] });
-      reset({ isPrimary: false });
+      clearErrors();
+      reset({
+        name: '',
+        code: '',
+        headName: '',
+        phone: '',
+        email: '',
+        addressLine1: '',
+        city: '',
+        state: '',
+        isPrimary: false,
+      });
+    },
+  });
+
+  // Combined mutation: create branch then proceed
+  const saveAndContinueMutation = useMutation({
+    mutationFn: async (data: FormValues) => {
+      const normalizedName = data.name.trim();
+      const normalizedCode = data.code?.trim();
+      const effectiveIsPrimary = hasPrimary ? false : (data.isPrimary || branches.length === 0);
+      const payload = {
+        ...data,
+        name: normalizedName,
+        code: normalizedCode || undefined,
+        headName: data.headName?.trim() || undefined,
+        phone: data.phone?.trim() || undefined,
+        email: data.email?.trim() || undefined,
+        addressLine1: data.addressLine1?.trim() || undefined,
+        city: data.city?.trim() || undefined,
+        state: data.state?.trim() || undefined,
+        isPrimary: effectiveIsPrimary, // Auto-set as primary only when no primary exists
+      };
+      await createBranch(payload as any);
+      await updateOnboardingStep('branchStep', 'COMPLETED');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['branches'] });
+      queryClient.invalidateQueries({ queryKey: ['onboarding'] });
+      router.push('/setup/session');
     },
   });
 
@@ -86,6 +179,7 @@ export function BranchForm() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['branches'] }),
   });
 
+  // Legacy: Only used when branches already exist
   const finalizeMutation = useMutation({
     mutationFn: async () => {
       await updateOnboardingStep('branchStep', 'COMPLETED');
@@ -96,7 +190,11 @@ export function BranchForm() {
     },
   });
 
-  if (isLoading) return <SkeletonLoader rows={4} />;
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted || isLoading) return <SkeletonLoader rows={4} />;
 
   const isPrimaryWatched = watch('isPrimary');
 
@@ -117,8 +215,17 @@ export function BranchForm() {
         <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-4 flex items-center gap-2">
           <PlusCircle className="w-4 h-4 text-emerald-500" /> Add New Branch
         </h3>
-        {(createMutation.error || deleteMutation.error) && (
-          <Alert type="error" message={((createMutation.error || deleteMutation.error) as Error).message} />
+        {(createMutation.error || saveAndContinueMutation.error) && (
+          <Alert type="error" message={
+            ((createMutation.error || saveAndContinueMutation.error) as any)?.code === 'PRIMARY_BRANCH_EXISTS'
+              ? 'A primary branch already exists. Uncheck "Set as Primary Branch" to add this as a regular branch.'
+              : ((createMutation.error || saveAndContinueMutation.error) as any)?.code === 'DUPLICATE_RECORD_LOCAL' || ((createMutation.error || saveAndContinueMutation.error) as any)?.statusCode === 409
+                ? 'A branch with this name or code already exists. Please use a unique name/code.'
+                : ((createMutation.error || saveAndContinueMutation.error) as Error).message
+          } />
+        )}
+        {deleteMutation.error && (
+          <Alert type="error" message={(deleteMutation.error as Error).message} />
         )}
         <form onSubmit={handleSubmit((d) => createMutation.mutate(d))} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -162,30 +269,71 @@ export function BranchForm() {
             </div>
           </label>
 
-          <button
-            type="submit"
-            disabled={createMutation.isPending}
-            className="flex items-center gap-2 rounded-lg border-2 border-dashed border-emerald-400 text-emerald-600 px-4 py-2.5 text-sm font-medium hover:bg-emerald-50 transition-colors disabled:opacity-60"
-          >
-            <PlusCircle className="w-4 h-4" />
-            {createMutation.isPending ? 'Adding...' : 'Add Branch'}
-          </button>
+          <div className="flex flex-wrap gap-3">
+            <button
+              type="submit"
+              disabled={createMutation.isPending}
+              className="flex items-center gap-2 rounded-lg border-2 border-dashed border-emerald-400 text-emerald-600 px-4 py-2.5 text-sm font-medium hover:bg-emerald-50 transition-colors disabled:opacity-60"
+            >
+              <PlusCircle className="w-4 h-4" />
+              {createMutation.isPending ? 'Adding...' : 'Add More Branch'}
+            </button>
+
+            {/* Save & Continue - saves current form and proceeds */}
+            <button
+              type="button"
+              onClick={async () => {
+                const values = getValues();
+                const hasTypedBranchData = Boolean(
+                  values.name?.trim() ||
+                  values.code?.trim() ||
+                  values.headName?.trim() ||
+                  values.phone?.trim() ||
+                  values.email?.trim() ||
+                  values.addressLine1?.trim() ||
+                  values.city?.trim() ||
+                  values.state?.trim()
+                );
+
+                if (!hasTypedBranchData && branches.length > 0) {
+                  finalizeMutation.mutate();
+                  return;
+                }
+
+                if (values.name && values.name.trim().length > 0 && values.name.trim().length < 2) {
+                  setError('name', { type: 'manual', message: 'Branch name is required' });
+                  return;
+                }
+
+                clearErrors('name');
+                const isValid = await trigger();
+                if (!isValid) return;
+                saveAndContinueMutation.mutate(getValues());
+              }}
+              disabled={saveAndContinueMutation.isPending || createMutation.isPending}
+              className="flex items-center gap-2 rounded-lg bg-emerald-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60 transition-colors"
+            >
+              {saveAndContinueMutation.isPending ? 'Saving...' : 'Save & Continue →'}
+            </button>
+          </div>
         </form>
       </div>
 
-      {/* Navigation */}
-      <div className="flex items-center justify-between pt-6 border-t border-gray-100 mt-6">
-        <button type="button" onClick={() => router.back()} className="text-sm text-gray-500 hover:text-gray-700">
-          ← Back
-        </button>
-        <button
-          onClick={() => finalizeMutation.mutate()}
-          disabled={branches.length === 0 || finalizeMutation.isPending}
-          className="flex items-center gap-2 rounded-lg bg-emerald-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
-        >
-          {finalizeMutation.isPending ? 'Saving...' : 'Continue →'}
-        </button>
-      </div>
+      {/* Navigation - only show Continue if branches already exist */}
+      {branches.length > 0 && (
+        <div className="flex items-center justify-between pt-6 border-t border-gray-100 mt-6">
+          <button type="button" onClick={() => router.back()} className="text-sm text-gray-500 hover:text-gray-700">
+            ← Back
+          </button>
+          <button
+            onClick={() => finalizeMutation.mutate()}
+            disabled={finalizeMutation.isPending}
+            className="flex items-center gap-2 rounded-lg bg-emerald-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60 transition-colors"
+          >
+            {finalizeMutation.isPending ? 'Saving...' : 'Continue →'}
+          </button>
+        </div>
+      )}
     </SectionCard>
   );
 }

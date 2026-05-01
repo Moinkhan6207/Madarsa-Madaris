@@ -1,5 +1,4 @@
 import { PrismaClient } from '@prisma/client';
-import { isDevelopment } from './env';
 import { logger } from '../common/logger/logger';
 
 // =============================================================================
@@ -23,12 +22,11 @@ const createPrismaClient = (): PrismaClient => {
   const optimizedUrl = `${dbUrl}${separator}pgbouncer=true&connection_limit=20&pool_timeout=15`;
 
   const client = new PrismaClient({
-    log: isDevelopment()
-      ? [
-          { emit: 'event', level: 'error' },
-          { emit: 'event', level: 'warn' },
-        ]
-      : [{ emit: 'event', level: 'error' }],
+    log: [
+      { emit: 'event', level: 'query' },
+      { emit: 'event', level: 'error' },
+      { emit: 'event', level: 'warn' },
+    ],
     datasources: {
       db: {
         url: optimizedUrl,
@@ -40,12 +38,19 @@ const createPrismaClient = (): PrismaClient => {
   // Logging Middleware
   // =============================================================================
 
-  // Query logging disabled for performance - re-enable only when debugging
-  // if (isDevelopment()) {
-  //   client.$on('query', (e: { query: string; duration: number }) => {
-  //     logger.debug({ query: e.query, duration: e.duration }, 'Prisma Query');
-  //   });
-  // }
+  // Log slow queries (>300ms) for performance monitoring
+  client.$on('query', (e: { query: string; duration: number; params: string }) => {
+    if (e.duration > 300) {
+      logger.warn(
+        {
+          query: e.query.substring(0, 500), // Truncate long queries
+          duration: e.duration,
+          params: e.params ? e.params.substring(0, 200) : undefined,
+        },
+        'Slow Prisma Query detected'
+      );
+    }
+  });
 
   client.$on('error', (e: { message: string }) => {
     logger.error({ error: e.message }, 'Prisma Error');

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { Menu, X, Phone } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -54,9 +55,11 @@ export default function Navbar({ tenant, settings, navigation = [] }: any) {
           {/* Logo */}
           <Link href={baseUrl} className="flex items-center gap-3 group flex-shrink-0">
             {settings?.logoUrl ? (
-              <img
+              <Image
                 src={settings.logoUrl}
-                alt={tenant?.displayName}
+                alt={tenant?.displayName || 'Logo'}
+                width={40}
+                height={40}
                 className="h-10 w-auto object-contain"
               />
             ) : (
@@ -82,6 +85,7 @@ export default function Navbar({ tenant, settings, navigation = [] }: any) {
                 <Link
                   key={item.slug}
                   href={`${baseUrl}${item.isHomePage || item.slug === 'home' ? '' : '/' + item.slug}`}
+                  prefetch={true}
                   className={`relative text-[11px] font-bold transition-all uppercase tracking-widest px-4 py-2 rounded-lg ${
                     active ? 'text-gray-900 bg-gray-50' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50/50'
                   }`}

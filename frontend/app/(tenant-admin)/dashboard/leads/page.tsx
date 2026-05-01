@@ -1,32 +1,38 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { leadService, Lead } from '@/services/lead.service';
-import { 
-  Mail, 
-  Phone, 
-  Calendar, 
-  User, 
-  CheckCircle, 
-  Clock, 
-  XCircle, 
-  Search, 
-  Filter, 
+import {
+  Mail,
+  Phone,
+  Calendar,
+  User,
+  CheckCircle,
+  Clock,
+  XCircle,
+  Search,
+  Filter,
   ArrowRight,
   MoreHorizontal,
   X,
   MessageSquare
 } from 'lucide-react';
 
+// Prevent prerendering during build to avoid QueryClient errors
+export const dynamic = 'force-dynamic';
+
 export default function LeadsDashboard() {
-  const queryClient = useQueryClient();
+  const [isMounted, setIsMounted] = useState(false);
   const [filter, setFilter] = useState({ status: '', type: '', page: 1 });
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+
+  const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery({
     queryKey: ['leads', filter],
     queryFn: () => leadService.listLeads(filter),
+    enabled: isMounted,
   });
 
   const statusMutation = useMutation({
@@ -38,6 +44,21 @@ export default function LeadsDashboard() {
       }
     },
   });
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="animate-pulse flex flex-col items-center gap-4">
+          <div className="w-12 h-12 bg-emerald-200 rounded-full"></div>
+          <div className="w-32 h-4 bg-slate-200 rounded"></div>
+        </div>
+      </div>
+    );
+  }
 
   const leads = data?.data?.leads || [];
 

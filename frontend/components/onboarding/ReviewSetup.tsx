@@ -5,42 +5,53 @@ import { useRouter } from 'next/navigation';
 import { CheckCircle2, ChevronRight, Loader2, Info, RefreshCw } from 'lucide-react';
 import { getOnboardingStatus, getProfile, getBranding, getBranches, getSessions, finalizeOnboarding } from '@services/onboarding.service';
 import { Alert, SectionCard, SkeletonLoader } from '@components/ui/FormElements';
+import { useState, useEffect } from 'react';
 
 export function ReviewSetup() {
   const router = useRouter();
+  const [isMounted, setIsMounted] = useState(false);
   const queryClient = useQueryClient();
 
-  const { data: status, isLoading: statusLoading, refetch: refetchStatus } = useQuery({ 
-    queryKey: ['onboarding'], 
+  const { data: status, isLoading: statusLoading, refetch: refetchStatus } = useQuery({
+    queryKey: ['onboarding'],
     queryFn: getOnboardingStatus,
-    refetchOnMount: 'always'
+    refetchOnMount: 'always',
+    enabled: isMounted,
   });
-  
-  const { data: profile, isLoading: profileLoading, refetch: refetchProfile } = useQuery({ 
-    queryKey: ['profile'], 
+
+  const { data: profile, isLoading: profileLoading, refetch: refetchProfile } = useQuery({
+    queryKey: ['profile'],
     queryFn: getProfile,
     refetchOnMount: 'always',
-    retry: 2
+    retry: 2,
+    enabled: isMounted,
   });
-  
-  const { data: branding, isLoading: brandingLoading, refetch: refetchBranding } = useQuery({ 
-    queryKey: ['branding'], 
+
+  const { data: branding, isLoading: brandingLoading, refetch: refetchBranding } = useQuery({
+    queryKey: ['branding'],
     queryFn: getBranding,
     refetchOnMount: 'always',
-    retry: 2
+    retry: 2,
+    enabled: isMounted,
   });
 
-  const { data: branches, isLoading: branchesLoading, refetch: refetchBranches } = useQuery({ 
-    queryKey: ['branches'], 
+  const { data: branchesData, isLoading: branchesLoading, refetch: refetchBranches } = useQuery({
+    queryKey: ['branches'],
     queryFn: getBranches,
-    refetchOnMount: 'always'
+    refetchOnMount: 'always',
+    enabled: isMounted,
   });
 
-  const { data: sessions, isLoading: sessionsLoading, refetch: refetchSessions } = useQuery({ 
-    queryKey: ['sessions'], 
+  const branches = Array.isArray(branchesData) ? branchesData : [];
+
+  const { data: sessionsData, isLoading: sessionsLoading, refetch: refetchSessions } = useQuery({
+    queryKey: ['sessions'],
     queryFn: getSessions,
-    refetchOnMount: 'always'
+    refetchOnMount: 'always',
+    enabled: isMounted,
   });
+
+  const sessions = Array.isArray(sessionsData) ? sessionsData : [];
 
   const handleRefresh = async () => {
     await Promise.all([
@@ -56,13 +67,18 @@ export function ReviewSetup() {
     mutationFn: finalizeOnboarding,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['onboarding'] });
-      router.push('/dashboard');
+      queryClient.invalidateQueries({ queryKey: ['tenant-me'] });
+      router.replace('/pending');
     },
   });
 
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const isLoading = statusLoading || profileLoading || brandingLoading || branchesLoading || sessionsLoading;
 
-  if (isLoading) return <SkeletonLoader rows={10} />;
+  if (!isMounted || isLoading) return <SkeletonLoader rows={10} />;
 
   console.log('[DEBUG] Rendering ReviewSetup', {
     statusKey: status?.profileStep,

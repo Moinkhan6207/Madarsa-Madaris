@@ -7,7 +7,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { getBranding, updateBranding, updateOnboardingStep, uploadBrandingImage } from '@services/onboarding.service';
 import { FormField, inputClass, SubmitButton, Alert, SectionCard, SkeletonLoader } from '@components/ui/FormElements';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { Upload, Image as ImageIcon, X, Loader2 } from 'lucide-react';
 
@@ -103,7 +103,7 @@ function ImageUploadField({ label, name, value, setValue, type, hint }: any) {
         />
         <div className="flex items-center gap-2">
           <input
-            value={value}
+            value={value || ''}
             onChange={(e) => setValue(name, e.target.value)}
             className={`${inputClass()} flex-1`}
             placeholder="Or enter image URL..."
@@ -116,12 +116,14 @@ function ImageUploadField({ label, name, value, setValue, type, hint }: any) {
 
 export function BrandingForm() {
   const router = useRouter();
+  const [isMounted, setIsMounted] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: branding, isLoading } = useQuery({
     queryKey: ['branding'],
     queryFn: getBranding,
     retry: false,
+    enabled: isMounted,
   });
 
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<FormValues>({
@@ -154,7 +156,11 @@ export function BrandingForm() {
     },
   });
 
-  if (isLoading) return <SkeletonLoader rows={5} />;
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted || isLoading) return <SkeletonLoader rows={5} />;
 
   const primaryVal = watch('primaryColor');
   const secondaryVal = watch('secondaryColor');

@@ -1,6 +1,7 @@
 import rateLimit from 'express-rate-limit';
 import { AppError } from '../errors/AppError';
 import { Request, Response } from 'express';
+import { env } from '../../config/env';
 
 interface RateLimitOptions {
   windowMs: number;
@@ -9,11 +10,22 @@ interface RateLimitOptions {
 }
 
 export const createRateLimiter = (options: RateLimitOptions) => {
+  // Relax rate limits in development
+  const isDev = env.NODE_ENV === 'development';
+  const multiplier = isDev ? 10 : 1;
+
   return rateLimit({
     windowMs: options.windowMs,
-    max: options.max,
+    max: options.max * multiplier,
     standardHeaders: true,
     legacyHeaders: false,
+    skip: (req) => {
+      // Skip rate limiting for health checks
+      if (req.path === '/api/health') return true;
+      // Skip in development if rate limiting is disabled
+      if (isDev && process.env.DISABLE_RATE_LIMIT === 'true') return true;
+      return false;
+    },
     handler: (_req: Request, _res: Response) => {
       const remainingTime = Math.ceil(options.windowMs / 1000 / 60);
       throw new AppError(

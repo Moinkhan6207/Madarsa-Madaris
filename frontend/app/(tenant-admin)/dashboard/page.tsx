@@ -1,11 +1,18 @@
 'use client';
 
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@lib/api';
 import { getOnboardingStatus } from '@services/onboarding.service';
-import { Loader2, Users, School, Calendar, MapPin, Settings, ArrowUpRight, TrendingUp, Sparkles, Plus, CheckCircle, ChevronRight } from 'lucide-react';
+import { Users, School, MapPin, Calendar, TrendingUp, LayoutDashboard, ArrowRight, ArrowUpRight, Sparkles, Plus, ChevronRight, CheckCircle, Settings } from 'lucide-react';
+import Link from 'next/link';
+import { motion } from 'framer-motion';
 
-function StatCard({ label, value, icon: Icon, color, trend, i }: { label: string; value: string | number; icon: any; color: string; trend?: string; i: number }) {
+// Prevent prerendering during build to avoid QueryClient errors
+export const dynamic = 'force-dynamic';
+
+// Memoized StatCard to prevent unnecessary re-renders
+const StatCard = React.memo(({ label, value, icon: Icon, color, trend, i }: { label: string; value: string | number; icon: any; color: string; trend?: string; i: number }) => {
   const colorMap: any = {
     emerald: 'bg-emerald-50 text-emerald-600 ring-emerald-100',
     blue: 'bg-blue-50 text-blue-600 ring-blue-100',
@@ -14,19 +21,19 @@ function StatCard({ label, value, icon: Icon, color, trend, i }: { label: string
   };
 
   return (
-    <div 
+    <div
       className="bg-white rounded-3xl p-8 shadow-[0_8px_30px_rgb(0,0,0,0.02)] border border-slate-100 relative overflow-hidden group hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300 animate-fade-in-up"
       style={{ animationDelay: `${i * 100}ms` }}
     >
       <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity">
         <ArrowUpRight className="w-5 h-5 text-slate-300" />
       </div>
-      
+
       <div className="flex flex-col gap-6">
         <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ring-4 ${colorMap[color]}`}>
           <Icon className="w-7 h-7" />
         </div>
-        
+
         <div>
           <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-1">{label}</p>
           <div className="flex items-end gap-3">
@@ -42,7 +49,9 @@ function StatCard({ label, value, icon: Icon, color, trend, i }: { label: string
       </div>
     </div>
   );
-}
+});
+
+StatCard.displayName = 'StatCard';
 
 export default function TenantDashboard() {
   const { data: tenant, isLoading: tenantLoading } = useQuery({
@@ -66,6 +75,19 @@ export default function TenantDashboard() {
     refetchOnReconnect: false,
   });
 
+  // Fetch pre-computed stats from backend
+  const { data: stats, isLoading: statsLoading } = useQuery({
+    queryKey: ['dashboard-stats'],
+    queryFn: async () => {
+      const res = await api.get('/tenant/dashboard/stats');
+      return res.data.data;
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes - backend has caching
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+  });
+
   if (tenantLoading || onboardingLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -77,11 +99,37 @@ export default function TenantDashboard() {
     );
   }
 
-  const stats = [
-    { label: 'Total Students', value: '452', icon: Users, color: 'blue', trend: '+12%' },
-    { label: 'Total Teachers', value: '28', icon: School, color: 'purple', trend: '+2%' },
-    { label: 'Active Branches', value: tenant?.branchCount || '01', icon: MapPin, color: 'emerald' },
-    { label: 'Active Session', value: '2024-25', icon: Calendar, color: 'amber' },
+  // Skeleton for stats loading
+  if (statsLoading) {
+    return (
+      <>
+        <AnimationStyles />
+        <div className="space-y-10">
+          <header className="flex items-end justify-between">
+            <div className="space-y-4">
+              <div className="h-8 w-48 bg-slate-200 rounded animate-pulse"></div>
+              <div className="h-4 w-64 bg-slate-100 rounded animate-pulse"></div>
+            </div>
+            <div className="flex gap-3">
+              <div className="h-12 w-32 bg-slate-100 rounded-xl animate-pulse"></div>
+              <div className="h-12 w-32 bg-slate-900 rounded-xl animate-pulse"></div>
+            </div>
+          </header>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="bg-white rounded-3xl p-8 h-40 animate-pulse"></div>
+            ))}
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  const statsData = [
+    { label: 'Total Students', value: stats?.totalStudents || '-', icon: Users, color: 'blue' },
+    { label: 'Total Teachers', value: stats?.totalTeachers || '-', icon: School, color: 'purple' },
+    { label: 'Active Branches', value: stats?.totalBranches || tenant?.branchCount || '-', icon: MapPin, color: 'emerald' },
+    { label: 'Total Pages', value: stats?.totalPages || '-', icon: Calendar, color: 'amber' },
   ];
 
   return (
@@ -119,7 +167,7 @@ export default function TenantDashboard() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-        {stats.map((stat, i) => (
+        {statsData.map((stat: any, i: number) => (
           <StatCard key={stat.label} {...stat} i={i} />
         ))}
       </div>

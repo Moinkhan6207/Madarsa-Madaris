@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { TenantController } from '../controllers/tenant.controller';
 import { OnboardingController } from '../controllers/onboarding.controller';
 import { ProfileController, BrandingController, BranchController, SessionController } from '../controllers/setup.controller';
+import { DashboardController } from '../controllers/dashboard.controller';
 import { upload } from '../../../common/middleware/upload.middleware';
 import { authMiddleware } from '../../../common/middleware/auth.middleware';
 import { tenantContextMiddleware } from '../../../common/middleware/tenant-context.middleware';
@@ -16,6 +17,10 @@ router.use(tenantContextMiddleware);
 
 // ── Tenant Selection ───────────────────────────────────────────────────────
 router.get('/me', TenantController.getMe);
+
+// ── Dashboard Stats (Pre-computed, cached) ────────────────────────────────
+router.get('/dashboard/stats', DashboardController.getStats);
+router.post('/dashboard/stats/refresh', DashboardController.refreshStats);
 
 // ── Onboarding Progress ────────────────────────────────────────────────────
 router.get('/onboarding', OnboardingController.getStatus);

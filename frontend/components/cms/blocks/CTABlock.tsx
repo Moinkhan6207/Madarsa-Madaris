@@ -3,7 +3,7 @@ import React from 'react';
 import { ArrowRight, Send, Star } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-export default function CTABlock({ content, config, settings }: any) {
+const CTABlock = React.memo(({ content, config, settings }: any) => {
   const primary = settings?.primaryColor || '#10b981';
   const secondary = settings?.secondaryColor || '#0f172a';
 
@@ -97,4 +97,8 @@ export default function CTABlock({ content, config, settings }: any) {
       </div>
     </section>
   );
-}
+});
+
+CTABlock.displayName = 'CTABlock';
+
+export default CTABlock;

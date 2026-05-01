@@ -1,9 +1,10 @@
 'use client';
 import React from 'react';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { Maximize2, Search, Camera } from 'lucide-react';
 
-export default function GalleryBlock({ content, config, settings }: any) {
+const GalleryBlock = React.memo(({ content, config, settings }: any) => {
   const primary = settings?.primaryColor || '#10b981';
   const images = content.images || [];
 
@@ -27,7 +28,14 @@ export default function GalleryBlock({ content, config, settings }: any) {
           {images.length > 0 ? images.map((img: any, i: number) => (
             <motion.div key={i} initial={{ opacity: 0, scale: 0.95 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }} whileHover={{ y: -10 }} className="relative rounded-[3rem] overflow-hidden group cursor-pointer shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] hover:shadow-[0_50px_100px_-20px_rgba(0,0,0,0.2)] transition-all">
               <div className="relative aspect-[4/5] bg-gray-100">
-                <img src={img.url} alt={img.alt || 'Gallery image'} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" />
+                <Image
+                  src={img.url}
+                  alt={img.alt || 'Gallery image'}
+                  fill
+                  className="object-cover transition-transform duration-1000 group-hover:scale-110"
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  loading="lazy"
+                />
               </div>
               <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex flex-col justify-end p-10">
                 <div className="flex items-center justify-between translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
@@ -53,4 +61,8 @@ export default function GalleryBlock({ content, config, settings }: any) {
         </div>
       </div>
     </section>;
-}
+});
+
+GalleryBlock.displayName = 'GalleryBlock';
+
+export default GalleryBlock;

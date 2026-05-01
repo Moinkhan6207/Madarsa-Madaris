@@ -1,18 +1,19 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import Image from 'next/image';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { cmsService, Page, PageBlock } from '@/services/cms.service';
-import { 
-  Plus, 
-  Trash2, 
-  ChevronUp, 
-  ChevronDown, 
-  Save, 
-  Settings2, 
-  Layers, 
-  Layout, 
-  Eye, 
+import {
+  Plus,
+  Trash2,
+  ChevronUp,
+  ChevronDown,
+  Save,
+  Settings2,
+  Layers,
+  Layout,
+  Eye,
   ArrowLeft,
   Image as ImageIcon,
   CheckCircle2,
@@ -36,12 +37,15 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
 import MediaLibrary from '@/components/cms/MediaLibrary';
 import PublicRenderer from '@/components/cms/PublicRenderer';
-import { motion, AnimatePresence } from 'framer-motion';
 
-// Component for block cards
-const PageCard = ({ bt, onAdd }: { bt: any; onAdd: (type: string) => void }) => (
+// Prevent prerendering during build to avoid QueryClient errors
+export const dynamic = 'force-dynamic';
+
+// Component for block cards - memoized to prevent unnecessary re-renders
+const PageCard = React.memo(({ bt, onAdd }: { bt: any; onAdd: (type: string) => void }) => (
   <motion.button
     whileHover={{ y: -5, scale: 1.02 }}
     whileTap={{ scale: 0.98 }}
@@ -49,7 +53,7 @@ const PageCard = ({ bt, onAdd }: { bt: any; onAdd: (type: string) => void }) => 
     className="group relative bg-white p-6 rounded-[2rem] border border-slate-100 shadow-[0_8px_30px_rgba(0,0,0,0.02)] hover:shadow-xl hover:shadow-slate-200/50 transition-all flex flex-col items-center text-center h-full overflow-hidden"
   >
     <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-4 transition-all group-hover:scale-110 group-hover:rotate-3 shadow-sm
-      ${bt.color === 'emerald' ? 'bg-emerald-50 text-emerald-600' : 
+      ${bt.color === 'emerald' ? 'bg-emerald-50 text-emerald-600' :
         bt.color === 'blue' ? 'bg-blue-50 text-blue-600' :
         bt.color === 'purple' ? 'bg-purple-50 text-purple-600' :
         bt.color === 'amber' ? 'bg-amber-50 text-amber-600' :
@@ -65,7 +69,9 @@ const PageCard = ({ bt, onAdd }: { bt: any; onAdd: (type: string) => void }) => 
     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Add Section</p>
     <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-slate-50 group-hover:bg-emerald-500 transition-colors" />
   </motion.button>
-);
+));
+
+PageCard.displayName = 'PageCard';
 
 export default function PageBuilder() {
   const { id } = useParams();
@@ -96,16 +102,16 @@ export default function PageBuilder() {
       if (pageBlocks.length === 0) {
         pageBlocks = [{
           type: 'hero',
-          content: { 
-            en: { 
-              title: 'Welcome to your new page', 
-              subtitle: 'Start by customizing this section or add new ones from the library.', 
-              ctaText: 'Get Started', 
-              ctaLink: '#', 
-              imageUrl: '', 
-              videoUrl: '', 
-              badge: 'NEW PAGE' 
-            } 
+          content: {
+            en: {
+              title: 'Welcome to your new page',
+              subtitle: 'Start by customizing this section or add new ones from the library.',
+              ctaText: 'Get Started',
+              ctaLink: '#',
+              imageUrl: '',
+              videoUrl: '',
+              badge: 'NEW PAGE'
+            }
           },
           config: {},
           order: 0
@@ -120,11 +126,11 @@ export default function PageBuilder() {
   }, [pageData]);
 
   const saveMutation = useMutation({
-    mutationFn: (overrides?: Partial<Page>) => 
-      cmsService.updatePage(id as string, { 
-        ...localPageData, 
-        blocks, 
-        isPublished: overrides?.isPublished !== undefined ? overrides.isPublished : localPageData.isPublished 
+    mutationFn: (overrides?: Partial<Page>) =>
+      cmsService.updatePage(id as string, {
+        ...localPageData,
+        blocks,
+        isPublished: overrides?.isPublished !== undefined ? overrides.isPublished : localPageData.isPublished
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cms-page', id] });
@@ -134,7 +140,8 @@ export default function PageBuilder() {
     },
   });
 
-  const getInitialContent = (type: string) => {
+  // Memoize block type handlers to prevent unnecessary re-renders
+  const getInitialContent = useCallback((type: string) => {
     switch (type) {
       case 'hero': return { title: 'Welcome to Darul Huda', subtitle: 'Leading the way in Islamic education and spiritual growth.', ctaText: 'Join Us Today', ctaLink: '#', imageUrl: '', videoUrl: '', badge: 'ALHAMDULILLAH' };
       case 'about': return { title: 'Our Noble Mission', description: 'Established with the vision of nurturing scholars who serve the Ummah with wisdom and faith.', imageUrl: '', features: [] };
@@ -149,54 +156,43 @@ export default function PageBuilder() {
       case 'results': return { title: 'Academic Achievements', subtitle: 'Celebrating the success of our students in regional and national examinations.', metrics: [{ label: 'Top Performers', value: '85' }, { label: 'Pass Percentage', value: '98%' }] };
       default: return {};
     }
-  };
+  }, []);
 
-  const addBlock = (type: string) => {
+  const handleAddBlock = useCallback((type: string) => {
     const newBlock: PageBlock = {
-      type: type === 'admission' || type === 'contact' ? 'form' : type === 'donation' ? 'donation-banner' : type,
-      content: { [currentLang]: { 
-        ...getInitialContent(type === 'admission' || type === 'contact' ? 'form' : type),
-        ...(type === 'admission' ? { formType: 'ADMISSION', title: 'Admission Application' } : {}),
-        ...(type === 'contact' ? { formType: 'CONTACT', title: 'Get In Touch' } : {})
-      } },
+      type,
+      content: { en: getInitialContent(type) },
       config: {},
       order: blocks.length
     };
     setBlocks([...blocks, newBlock]);
     setEditingBlockIndex(blocks.length);
-    setShowMobileSidebar(false);
-  };
+  }, [blocks, getInitialContent]);
 
-  const removeBlock = (index: number) => {
-    if (!confirm('Are you sure you want to remove this section?')) return;
+  const handleMoveBlock = useCallback((index: number, direction: 'up' | 'down') => {
     const newBlocks = [...blocks];
-    newBlocks.splice(index, 1);
-    setBlocks(newBlocks.map((b, i) => ({ ...b, order: i })));
-    if (editingBlockIndex === index) setEditingBlockIndex(null);
-  };
-
-  const moveBlock = (index: number, direction: 'up' | 'down') => {
-    const newBlocks = [...blocks];
-    const targetIndex = direction === 'up' ? index - 1 : index + 1;
-    if (targetIndex < 0 || targetIndex >= newBlocks.length) return;
-    [newBlocks[index], newBlocks[targetIndex]] = [newBlocks[targetIndex], newBlocks[index]];
-    setBlocks(newBlocks.map((b, i) => ({ ...b, order: i })));
-    if (editingBlockIndex === index) setEditingBlockIndex(targetIndex);
-    else if (editingBlockIndex === targetIndex) setEditingBlockIndex(index);
-  };
-
-  const updateBlockContent = (index: number, key: string, value: any) => {
-    const newBlocks = [...blocks];
-    const currentBlockContent = newBlocks[index].content;
-    const langContent = currentBlockContent[currentLang] || { ...currentBlockContent };
-    newBlocks[index].content = {
-      ...currentBlockContent,
-      [currentLang]: { ...langContent, [key]: value }
-    };
+    const newIndex = direction === 'up' ? index - 1 : index + 1;
+    if (newIndex < 0 || newIndex >= newBlocks.length) return;
+    [newBlocks[index], newBlocks[newIndex]] = [newBlocks[newIndex], newBlocks[index]];
+    newBlocks[index].order = index;
+    newBlocks[newIndex].order = newIndex;
     setBlocks(newBlocks);
-  };
+    setEditingBlockIndex(newIndex);
+  }, [blocks]);
 
-  const handleMediaSelect = (url: string) => {
+  const handleDeleteBlock = useCallback((index: number) => {
+    const newBlocks = blocks.filter((_, i) => i !== index);
+    setBlocks(newBlocks);
+    setEditingBlockIndex(newBlocks.length > 0 ? Math.min(index, newBlocks.length - 1) : null);
+  }, [blocks]);
+
+  const handleUpdateBlock = useCallback((index: number, content: any) => {
+    const newBlocks = [...blocks];
+    newBlocks[index] = { ...newBlocks[index], content: { ...newBlocks[index].content, [currentLang]: content } };
+    setBlocks(newBlocks);
+  }, [blocks, currentLang]);
+
+  const handleMediaSelect = useCallback((url: string) => {
     if (mediaTarget) {
       if (mediaTarget.index === -1) {
         setLocalPageData({ ...localPageData, [mediaTarget.key]: url });
@@ -208,16 +204,16 @@ export default function PageBuilder() {
         const langContent = currentBlockContent[currentLang] || { ...currentBlockContent };
         const list = [...(langContent[parentKey] || [])];
         list[index] = { ...list[index], [childKey]: url };
-        updateBlockContent(mediaTarget.index, parentKey, list);
+        handleUpdateBlock(mediaTarget.index, { ...blocks[mediaTarget.index].content[currentLang], [parentKey]: list });
       } else {
-        updateBlockContent(mediaTarget.index, mediaTarget.key, url);
+        handleUpdateBlock(mediaTarget.index, { ...blocks[mediaTarget.index].content[currentLang], [mediaTarget.key]: url });
       }
     }
     setMediaLibraryOpen(false);
     setMediaTarget(null);
-  };
+  }, [mediaTarget, localPageData, blocks, currentLang, handleUpdateBlock]);
 
-  const blockTypes = [
+  const blockTypes = useMemo(() => [
     { type: 'hero', name: 'Home / Hero', icon: Layout, color: 'emerald' },
     { type: 'about', name: 'About Us', icon: Layers, color: 'blue' },
     { type: 'admission', name: 'Admission', icon: Zap, color: 'amber' },
@@ -230,7 +226,7 @@ export default function PageBuilder() {
     { type: 'stats', name: 'Statistics', icon: CheckCircle2, color: 'purple' },
     { type: 'testimonials', name: 'Testimonials', icon: Users, color: 'blue' },
     { type: 'cta', name: 'Call to Action', icon: Zap, color: 'amber' },
-  ];
+  ], []);
 
   if (isLoading) {
     return <div className="p-8 text-slate-400 font-bold italic animate-pulse">Initializing Portal...</div>;
@@ -303,7 +299,7 @@ export default function PageBuilder() {
             </div>
             <div className="flex-1 overflow-y-auto p-4 custom-scrollbar space-y-3">
               {blockTypes.map((bt) => (
-                <button key={bt.type} onClick={() => addBlock(bt.type)} className="flex items-center gap-3 w-full p-4 bg-slate-50/50 hover:bg-white border border-transparent hover:border-slate-200 rounded-2xl transition-all group">
+                <button key={bt.type} onClick={() => handleAddBlock(bt.type)} className="flex items-center gap-3 w-full p-4 bg-slate-50/50 hover:bg-white border border-transparent hover:border-slate-200 rounded-2xl transition-all group">
                   <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
                     <bt.icon className="w-5 h-5 text-slate-400 group-hover:text-emerald-500" />
                   </div>
@@ -335,7 +331,7 @@ export default function PageBuilder() {
                   <div className="bg-white rounded-[2.5rem] md:rounded-[3.5rem] p-6 md:p-12 border border-slate-100 shadow-sm relative overflow-hidden">
                     <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 relative z-10">
                       {blockTypes.map((bt) => (
-                        <PageCard key={bt.type} bt={bt} onAdd={addBlock} />
+                        <PageCard key={bt.type} bt={bt} onAdd={handleAddBlock} />
                       ))}
                     </div>
                   </div>
@@ -345,9 +341,9 @@ export default function PageBuilder() {
                   {blocks.map((block, index) => (
                     <motion.div key={index} onClick={() => setEditingBlockIndex(index)} className={`group relative bg-white rounded-[2rem] md:rounded-[2.5rem] border-2 transition-all cursor-pointer ${editingBlockIndex === index ? 'border-emerald-500 shadow-2xl shadow-emerald-500/10 ring-4 ring-emerald-500/5' : 'border-white hover:border-slate-200 shadow-sm'}`}>
                       <div className={`absolute -right-2 md:-left-16 top-0 flex md:flex-col gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all bg-white p-2 md:p-2.5 rounded-[1.2rem] md:rounded-[1.5rem] shadow-2xl border border-slate-100 z-[60]`}>
-                        <button onClick={(e) => { e.stopPropagation(); moveBlock(index, 'up'); }} className="p-2 md:p-2.5 hover:bg-slate-50 rounded-lg md:rounded-xl text-slate-400 hover:text-slate-900"><ChevronUp className="w-4 h-4 md:w-5 md:h-5" /></button>
-                        <button onClick={(e) => { e.stopPropagation(); moveBlock(index, 'down'); }} className="p-2 md:p-2.5 hover:bg-slate-50 rounded-lg md:rounded-xl text-slate-400 hover:text-slate-900"><ChevronDown className="w-4 h-4 md:w-5 md:h-5" /></button>
-                        <button onClick={(e) => { e.stopPropagation(); removeBlock(index); }} className="p-2 md:p-2.5 hover:bg-rose-50 rounded-lg md:rounded-xl text-rose-500"><Trash2 className="w-4 h-4 md:w-5 md:h-5" /></button>
+                        <button onClick={(e) => { e.stopPropagation(); handleMoveBlock(index, 'up'); }} className="p-2 md:p-2.5 hover:bg-slate-50 rounded-lg md:rounded-xl text-slate-400 hover:text-slate-900"><ChevronUp className="w-4 h-4 md:w-5 md:h-5" /></button>
+                        <button onClick={(e) => { e.stopPropagation(); handleMoveBlock(index, 'down'); }} className="p-2 md:p-2.5 hover:bg-slate-50 rounded-lg md:rounded-xl text-slate-400 hover:text-slate-900"><ChevronDown className="w-4 h-4 md:w-5 md:h-5" /></button>
+                        <button onClick={(e) => { e.stopPropagation(); handleDeleteBlock(index); }} className="p-2 md:p-2.5 hover:bg-rose-50 rounded-lg md:rounded-xl text-rose-500"><Trash2 className="w-4 h-4 md:w-5 md:h-5" /></button>
                       </div>
                       <div className="p-8 md:p-16 text-center">
                         <span className="text-[10px] md:text-[11px] font-black text-emerald-600 uppercase tracking-widest">Section: {block.type}</span>
@@ -402,7 +398,13 @@ export default function PageBuilder() {
                           <div className="space-y-3 md:space-y-4">
                             {value && (
                               <div className="group relative aspect-video rounded-[1.2rem] md:rounded-[1.5rem] overflow-hidden bg-slate-100 border border-slate-100 shadow-inner">
-                                  <img src={value} className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-500" />
+                                  <Image
+                                    src={value}
+                                    alt="Preview"
+                                    fill
+                                    className="object-cover transition-transform group-hover:scale-105 duration-500"
+                                    sizes="100vw"
+                                  />
                                   <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                       <button onClick={() => { setMediaTarget({ index: editingBlockIndex, key }); setMediaLibraryOpen(true); }} className="bg-white/90 backdrop-blur p-3 md:p-4 rounded-full shadow-2xl text-slate-900 transform scale-90 group-hover:scale-100 transition-transform"><Plus className="w-5 h-5 md:w-6 md:h-6" /></button>
                                   </div>
@@ -413,7 +415,7 @@ export default function PageBuilder() {
                             </button>
                         </div>
                         ) : typeof value === 'string' && value.length > 50 ? (
-                          <textarea rows={5} value={value} onChange={(e) => updateBlockContent(editingBlockIndex, key, e.target.value)} className="w-full px-5 md:px-6 py-5 md:py-6 bg-slate-50/50 border border-slate-200 rounded-2xl md:rounded-3xl text-sm font-bold text-slate-900 placeholder:text-slate-300 focus:outline-none focus:ring-4 focus:ring-emerald-500/5 focus:border-emerald-500/20 focus:bg-white transition-all resize-none shadow-sm" placeholder={`Enter ${key}...`} />
+                          <textarea rows={5} value={value} onChange={(e) => handleUpdateBlock(editingBlockIndex, { ...currentEditingContent, [key]: e.target.value })} className="w-full px-5 md:px-6 py-5 md:py-6 bg-slate-50/50 border border-slate-200 rounded-2xl md:rounded-3xl text-sm font-bold text-slate-900 placeholder:text-slate-300 focus:outline-none focus:ring-4 focus:ring-emerald-500/5 focus:border-emerald-500/20 focus:bg-white transition-all resize-none shadow-sm" placeholder={`Enter ${key}...`} />
                         ) : typeof value === 'object' && Array.isArray(value) ? (
                           <div className="space-y-4 md:space-y-6">
                             <div className="bg-slate-900 rounded-[1.2rem] md:rounded-[1.5rem] p-4 md:p-5 flex justify-between items-center shadow-xl shadow-slate-200">
@@ -423,24 +425,24 @@ export default function PageBuilder() {
                                 if (key === 'images') newItem = { url: '', caption: '' };
                                 else if (key === 'testimonials') newItem = { name: '', role: '', text: '', imageUrl: '' };
                                 else if (key === 'courses') newItem = { title: '', duration: '', description: '' };
-                                updateBlockContent(editingBlockIndex, key, [...value, newItem]);
+                                handleUpdateBlock(editingBlockIndex, { ...currentEditingContent, [key]: [...value, newItem] });
                               }} className="w-8 h-8 md:w-10 md:h-10 bg-emerald-500 text-white rounded-lg md:rounded-xl flex items-center justify-center hover:rotate-90 transition-transform shadow-lg"><Plus className="w-4 h-4 md:w-5 md:h-5" /></button>
                             </div>
                             <div className="space-y-4 md:space-y-6">
                               {value.map((item, i) => (
                                 <div key={i} className="p-6 md:p-8 bg-white rounded-[1.8rem] md:rounded-[2.5rem] border border-slate-100 relative shadow-xl shadow-slate-200/40 group/item">
-                                  <button onClick={() => { const newValue = [...value]; newValue.splice(i, 1); updateBlockContent(editingBlockIndex, key, newValue); }} className="absolute -right-2 md:-right-3 -top-2 md:-top-3 w-8 h-8 md:w-10 md:h-10 bg-white shadow-2xl border border-slate-50 rounded-full text-rose-500 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all"><Trash2 className="w-3.5 h-3.5 md:w-4 md:h-4" /></button>
+                                  <button onClick={() => { const newValue = [...value]; newValue.splice(i, 1); handleUpdateBlock(editingBlockIndex, { ...currentEditingContent, [key]: newValue }); }} className="absolute -right-2 md:-right-3 -top-2 md:-top-3 w-8 h-8 md:w-10 md:h-10 bg-white shadow-2xl border border-slate-50 rounded-full text-rose-500 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all"><Trash2 className="w-3.5 h-3.5 md:w-4 md:h-4" /></button>
                                   <div className="space-y-4 md:space-y-6">
                                     {Object.keys(item).map((subKey) => (
                                       <div key={subKey}>
                                         <label className="text-[8px] md:text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 md:mb-2 block">{subKey}</label>
                                         {subKey.toLowerCase().includes('url') || subKey.toLowerCase().includes('image') ? (
                                           <div className="flex gap-3 md:gap-4 items-center">
-                                              {item[subKey] && <div className="w-12 h-12 md:w-14 md:h-14 rounded-lg bg-slate-100 overflow-hidden border border-slate-100 flex-shrink-0"><img src={item[subKey]} className="w-full h-full object-cover" /></div>}
+                                              {item[subKey] && <div className="w-12 h-12 md:w-14 md:h-14 rounded-lg bg-slate-100 overflow-hidden border border-slate-100 flex-shrink-0 relative"><Image src={item[subKey]} alt="Preview" fill className="object-cover" sizes="56px" /></div>}
                                               <button onClick={() => { setMediaTarget({ index: editingBlockIndex, key: `${key}.${i}.${subKey}` }); setMediaLibraryOpen(true); }} className="flex-1 py-2.5 md:py-3.5 bg-slate-50 text-slate-900 rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest border border-slate-200 hover:bg-emerald-50">Select</button>
                                           </div>
                                         ) : (
-                                          <input value={item[subKey]} onChange={(e) => { const newValue = [...value]; newValue[i] = { ...item, [subKey]: e.target.value }; updateBlockContent(editingBlockIndex, key, newValue); }} className="w-full px-4 md:px-5 py-3 md:py-4 bg-slate-50/50 border border-slate-200 rounded-xl md:rounded-2xl text-[12px] md:text-[13px] font-black text-slate-900 focus:bg-white focus:border-emerald-500/30 transition-all focus:outline-none" />
+                                          <input value={item[subKey]} onChange={(e) => { const newValue = [...value]; newValue[i] = { ...item, [subKey]: e.target.value }; handleUpdateBlock(editingBlockIndex, { ...currentEditingContent, [key]: newValue }); }} className="w-full px-4 md:px-5 py-3 md:py-4 bg-slate-50/50 border border-slate-200 rounded-xl md:rounded-2xl text-[12px] md:text-[13px] font-black text-slate-900 focus:bg-white focus:border-emerald-500/30 transition-all focus:outline-none" />
                                         )}
                                       </div>
                                     ))}
@@ -450,7 +452,7 @@ export default function PageBuilder() {
                             </div>
                           </div>
                         ) : (
-                          <input value={value} onChange={(e) => updateBlockContent(editingBlockIndex, key, e.target.value)} className="w-full px-5 md:px-6 py-4 md:py-5 bg-slate-50/50 border border-slate-200 rounded-xl md:rounded-2xl text-sm font-black text-slate-900 focus:outline-none focus:ring-4 focus:ring-emerald-500/5 focus:border-emerald-500/20 focus:bg-white transition-all shadow-sm" />
+                          <input value={value} onChange={(e) => handleUpdateBlock(editingBlockIndex, { ...currentEditingContent, [key]: e.target.value })} className="w-full px-5 md:px-6 py-4 md:py-5 bg-slate-50/50 border border-slate-200 rounded-xl md:rounded-2xl text-sm font-black text-slate-900 focus:outline-none focus:ring-4 focus:ring-emerald-500/5 focus:border-emerald-500/20 focus:bg-white transition-all shadow-sm" />
                          )}
                       </div>
                     );
@@ -479,7 +481,7 @@ export default function PageBuilder() {
                 <div className="flex-1 overflow-y-auto pb-12 custom-scrollbar px-1 md:px-2">
                   <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                     {blockTypes.map((bt) => (
-                      <PageCard key={bt.type} bt={bt} onAdd={addBlock} />
+                      <PageCard key={bt.type} bt={bt} onAdd={handleAddBlock} />
                     ))}
                   </div>
                 </div>

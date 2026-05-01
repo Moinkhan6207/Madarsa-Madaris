@@ -1,9 +1,10 @@
 'use client';
 import React from 'react';
+import Image from 'next/image';
 import { Quote, Star } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-export default function TestimonialsBlock({ content, config, settings }: any) {
+const TestimonialsBlock = React.memo(({ content, config, settings }: any) => {
   const primary = settings?.primaryColor || '#10b981';
   const testimonials = content.testimonials || [
     { name: 'Abdullah Khan', role: 'Parent', content: 'The dedication and moral values taught here are exceptional. My son has shown great progress.' },
@@ -49,7 +50,13 @@ export default function TestimonialsBlock({ content, config, settings }: any) {
               </p>
               <div className="flex items-center gap-5 pt-8 border-t border-gray-50">
                 {test.imageUrl ? (
-                  <img src={test.imageUrl} alt={test.name} className="w-14 h-14 rounded-2xl object-cover shadow-lg" />
+                  <Image
+                    src={test.imageUrl}
+                    alt={test.name}
+                    width={56}
+                    height={56}
+                    className="w-14 h-14 rounded-2xl object-cover shadow-lg"
+                  />
                 ) : (
                   <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-xl font-black text-white shadow-lg" style={{ background: `linear-gradient(135deg, ${primary}dd, ${primary})` }}>
                     {test.name?.[0]}
@@ -65,4 +72,8 @@ export default function TestimonialsBlock({ content, config, settings }: any) {
         </div>
       </div>
     </section>;
-}
+});
+
+TestimonialsBlock.displayName = 'TestimonialsBlock';
+
+export default TestimonialsBlock;

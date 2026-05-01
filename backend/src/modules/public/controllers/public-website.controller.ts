@@ -1,9 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import NodeCache from 'node-cache';
 import { prisma } from '../../../config/prisma.service';
-
-// 5 minutes cache for public pages
-const publicCache = new NodeCache({ stdTTL: 300, checkperiod: 60 });
+import { cacheService } from '../../../common/cache/cache.service';
 
 // Cache key generator
 const getCacheKey = (tenantSlug: string, pageSlug: string) => `page:${tenantSlug}:${pageSlug || 'home'}`;
@@ -15,8 +12,8 @@ export class PublicWebsiteController {
       const normalizedSlug = pageSlug || 'home';
       const cacheKey = getCacheKey(tenantSlug as string, normalizedSlug as string);
 
-      // 1. Try Cache
-      const cachedData = publicCache.get(cacheKey);
+      // 1. Try Cache (multi-layer: Redis + memory)
+      const cachedData = await cacheService.get(cacheKey);
       if (cachedData) {
         // Set cache headers for CDN/browser caching
         res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
@@ -58,47 +55,55 @@ export class PublicWebsiteController {
         return res.status(404).json({ success: false, message: 'Institution website not found' });
       }
 
-      // 3. Fetch all pages for navigation (lightweight)
-      const allPages = await prisma.page.findMany({
-        where: { 
-          tenantId: tenant.id,
-          isPublished: true, 
-          deletedAt: null 
-        },
-        select: {
-          id: true,
-          slug: true,
-          title: true,
-          isHomePage: true,
-        },
-        orderBy: { isHomePage: 'desc' },
-        take: 50, // Limit navigation items
-      });
-
-      // 4. Fetch specific page with blocks in parallel
-      const targetPage = await prisma.page.findFirst({
-        where: {
-          tenantId: tenant.id,
-          isPublished: true,
-          deletedAt: null,
-          ...(normalizedSlug !== 'home'
-            ? { slug: normalizedSlug as string }
-            : { OR: [{ isHomePage: true }, { slug: 'home' }] }
-          )
-        },
-        include: {
-          blocks: {
-            orderBy: { order: 'asc' },
-            select: {
-              id: true,
-              type: true,
-              content: true,
-              config: true,
-              order: true,
+      // 3. Fetch all pages for navigation and target page in parallel
+      const [allPages, targetPage] = await Promise.all([
+        prisma.page.findMany({
+          where: {
+            tenantId: tenant.id,
+            isPublished: true,
+            deletedAt: null
+          },
+          select: {
+            id: true,
+            slug: true,
+            title: true,
+            isHomePage: true,
+          },
+          orderBy: { isHomePage: 'desc' },
+          take: 50, // Limit navigation items
+        }),
+        prisma.page.findFirst({
+          where: {
+            tenantId: tenant.id,
+            isPublished: true,
+            deletedAt: null,
+            ...(normalizedSlug !== 'home'
+              ? { slug: normalizedSlug as string }
+              : { OR: [{ isHomePage: true }, { slug: 'home' }] }
+            )
+          },
+          select: {
+            id: true,
+            slug: true,
+            title: true,
+            isHomePage: true,
+            metaTitle: true,
+            metaDescription: true,
+            ogImage: true,
+            canonicalUrl: true,
+            blocks: {
+              orderBy: { order: 'asc' },
+              select: {
+                id: true,
+                type: true,
+                content: true,
+                config: true,
+                order: true,
+              }
             }
           }
-        }
-      });
+        })
+      ]);
 
       if (!targetPage && pageSlug) {
         return res.status(404).json({ success: false, message: 'Page not found' });
@@ -126,8 +131,8 @@ export class PublicWebsiteController {
         navigation: allPages || []
       };
 
-      // 5. Set Cache
-      publicCache.set(cacheKey, responseData);
+      // 4. Set Cache (multi-layer: Redis + memory)
+      await cacheService.set(cacheKey, responseData, 300); // 5 minutes TTL
 
       // Set cache headers
       res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
@@ -138,27 +143,23 @@ export class PublicWebsiteController {
         data: responseData,
         source: 'db'
       });
-    } catch (e) { 
-      next(e); 
-      return; 
+    } catch (e) {
+      next(e);
+      return;
     }
   }
 
   // Helper to clear cache (use when page is updated)
-  static clearCache(tenantSlug: string, pageSlug?: string) {
+  static async clearCache(tenantSlug: string, pageSlug?: string) {
     if (pageSlug) {
-      publicCache.del(getCacheKey(tenantSlug, pageSlug));
+      await cacheService.del(getCacheKey(tenantSlug, pageSlug));
     } else {
-      const keys = publicCache.keys().filter(k => k.startsWith(`page:${tenantSlug}:`));
-      publicCache.del(keys);
+      await cacheService.delPattern(`page:${tenantSlug}:*`);
     }
   }
 
   // Health check for cache status
   static getCacheStats() {
-    return {
-      keys: publicCache.keys().length,
-      stats: publicCache.getStats()
-    };
+    return cacheService.getStats();
   }
 }

@@ -26,7 +26,7 @@ export class CmsSettingsController {
 
       // Clear all public cache for this tenant when settings change
       const tenant = await prisma.tenant.findUnique({ where: { id: tenantId }, select: { slug: true } });
-      if (tenant?.slug) PublicWebsiteController.clearCache(tenant.slug);
+      if (tenant?.slug) await PublicWebsiteController.clearCache(tenant.slug);
 
       res.json({ success: true, data });
     } catch (e) { next(e); }
@@ -68,7 +68,7 @@ export class CmsPageController {
     try {
       const tenantId = req.context!.tenantId!;
       const { id } = req.params;
-      
+
       console.log(`[DEBUG] Updating CMS Page ${id} for tenant ${tenantId}`);
       if (req.body.blocks) {
         console.log(`[DEBUG] Received ${req.body.blocks.length} blocks:`, JSON.stringify(req.body.blocks, null, 2));
@@ -82,15 +82,15 @@ export class CmsPageController {
       // Clear public page cache so updates are immediately live
       const tenant = await prisma.tenant.findUnique({ where: { id: tenantId }, select: { slug: true } });
       if (tenant?.slug) {
-        PublicWebsiteController.clearCache(tenant.slug, data.slug);
+        await PublicWebsiteController.clearCache(tenant.slug, data.slug);
         // Also clear homepage cache in case isHomePage changed
-        PublicWebsiteController.clearCache(tenant.slug, 'root');
+        await PublicWebsiteController.clearCache(tenant.slug, 'root');
       }
 
       res.json({ success: true, data });
-    } catch (e) { 
+    } catch (e) {
       console.error('[DEBUG] Update failed:', e);
-      next(e); 
+      next(e);
     }
   }
 
@@ -103,7 +103,7 @@ export class CmsPageController {
       await cmsService.deletePage(tenantId, id as string);
 
       const tenant = await prisma.tenant.findUnique({ where: { id: tenantId }, select: { slug: true } });
-      if (tenant?.slug) PublicWebsiteController.clearCache(tenant.slug, page.slug);
+      if (tenant?.slug) await PublicWebsiteController.clearCache(tenant.slug, page.slug);
 
       res.json({ success: true, message: 'Page deleted' });
     } catch (e) { next(e); }
@@ -116,7 +116,7 @@ export class CmsPageController {
 
       // Clear all tenant cache after bootstrap
       const tenant = await prisma.tenant.findUnique({ where: { id: tenantId }, select: { slug: true } });
-      if (tenant?.slug) PublicWebsiteController.clearCache(tenant.slug);
+      if (tenant?.slug) await PublicWebsiteController.clearCache(tenant.slug);
 
       res.json({ success: true, data });
     } catch (e) { next(e); }
@@ -127,7 +127,12 @@ export class MediaController {
   static async list(req: Request, res: Response, next: NextFunction) {
     try {
       const tenantId = req.context!.tenantId!;
-      const data = await mediaService.listMedia(tenantId);
+      const { page, limit, type } = req.query;
+      const data = await mediaService.listMedia(tenantId, {
+        page: page ? Number(page) : undefined,
+        limit: limit ? Number(limit) : undefined,
+        type: type as string,
+      });
       res.json({ success: true, data });
     } catch (e) { next(e); }
   }

@@ -343,6 +343,11 @@ export class CmsService {
       return { success: true, message: 'Website bootstrapped successfully' };
     };
 
-    return txClient ? operation(txClient) : this.prisma.$transaction(operation);
+    return txClient
+      ? operation(txClient)
+      : this.prisma.$transaction(operation, {
+          maxWait: 10000,
+          timeout: 60000,
+        });
   }
 }

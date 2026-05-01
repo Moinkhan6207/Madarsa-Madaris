@@ -1,9 +1,10 @@
 'use client';
 import React from 'react';
+import Image from 'next/image';
 import { ArrowRight, Play, Sparkles } from 'lucide-react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 
-export default function HeroBlock({ content, config, settings, tenant }: any) {
+const HeroBlock = React.memo(({ content, config, settings, tenant }: any) => {
   const primary = settings?.primaryColor || '#10b981';
   const secondary = settings?.secondaryColor || '#0f172a';
   const tenantSlug = tenant?.slug;
@@ -16,7 +17,14 @@ export default function HeroBlock({ content, config, settings, tenant }: any) {
   return <section className="relative min-h-[90vh] overflow-hidden flex items-center justify-center py-20 px-6" style={{ background: secondary }}>
       {hasImage && (
         <motion.div style={{ y: y1 }} className="absolute inset-0 z-0">
-          <img src={content.imageUrl} alt="Hero" className="w-full h-full object-cover scale-110" />
+          <Image
+            src={content.imageUrl}
+            alt="Hero"
+            fill
+            className="object-cover scale-110"
+            priority
+            sizes="100vw"
+          />
           <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/40 to-secondary/100" style={{'--tw-gradient-to': secondary} as React.CSSProperties}></div>
         </motion.div>
       )}
@@ -78,4 +86,8 @@ export default function HeroBlock({ content, config, settings, tenant }: any) {
         <div className="w-1.5 h-2 bg-white rounded-full"></div>
       </motion.div>
     </section>;
-}
+});
+
+HeroBlock.displayName = 'HeroBlock';
+
+export default HeroBlock;

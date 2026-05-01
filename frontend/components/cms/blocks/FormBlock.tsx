@@ -13,7 +13,7 @@ interface FormBlockProps {
   settings?: any;
 }
 
-export default function FormBlock({ content, tenant, settings }: FormBlockProps) {
+const FormBlock = React.memo(({ content, tenant, settings }: FormBlockProps) => {
   const formType = content.formType || 'CONTACT';
   const primary = settings?.primaryColor || '#10b981';
 
@@ -61,4 +61,8 @@ export default function FormBlock({ content, tenant, settings }: FormBlockProps)
       </div>
     </section>
   );
-}
+});
+
+FormBlock.displayName = 'FormBlock';
+
+export default FormBlock;

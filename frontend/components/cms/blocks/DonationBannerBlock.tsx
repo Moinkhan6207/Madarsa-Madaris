@@ -3,7 +3,7 @@ import React from 'react';
 import { Heart, ArrowRight, ShieldCheck, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-export default function DonationBannerBlock({ content, config, settings, tenant }: any) {
+const DonationBannerBlock = React.memo(({ content, config, settings, tenant }: any) => {
   const primary = settings?.primaryColor || '#10b981';
   const secondary = settings?.secondaryColor || '#0f172a';
   const tenantSlug = tenant?.slug;
@@ -114,4 +114,8 @@ export default function DonationBannerBlock({ content, config, settings, tenant 
         </div>
       </motion.div>
     </section>;
-}
+});
+
+DonationBannerBlock.displayName = 'DonationBannerBlock';
+
+export default DonationBannerBlock;

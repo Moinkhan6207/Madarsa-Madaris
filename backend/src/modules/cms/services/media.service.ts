@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { AppError } from '../../../common/errors/AppError';
 import { LocalStorageService } from '../../../common/storage/local-storage.service';
+import { createPaginationResult } from '../../../common/utils/pagination';
 
 export class MediaService {
   constructor(
@@ -22,23 +23,50 @@ export class MediaService {
         mimeType: file.mimetype
       }
     });
-    
+
     return {
       ...media,
       url: this.storage.getUrl(media.url)
     };
   }
 
-  async listMedia(tenantId: string) {
-    const media = await this.prisma.media.findMany({
-      where: { tenantId },
-      orderBy: { createdAt: 'desc' }
-    });
+  async listMedia(tenantId: string, params?: { page?: number; limit?: number; type?: string }) {
+    const page = params?.page || 1;
+    const limit = params?.limit || 20;
+    const skip = (page - 1) * limit;
 
-    return media.map(m => ({
+    const where: any = { tenantId };
+    if (params?.type) {
+      where.type = params.type.toUpperCase();
+    }
+
+    const [media, total] = await Promise.all([
+      this.prisma.media.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          url: true,
+          type: true,
+          fileName: true,
+          fileSize: true,
+          mimeType: true,
+          altText: true,
+          createdAt: true,
+          updatedAt: true,
+        }
+      }),
+      this.prisma.media.count({ where })
+    ]);
+
+    const mediaWithUrls = media.map(m => ({
       ...m,
       url: this.storage.getUrl(m.url)
     }));
+
+    return createPaginationResult(mediaWithUrls, total, page, limit);
   }
 
   async deleteMedia(tenantId: string, id: string) {

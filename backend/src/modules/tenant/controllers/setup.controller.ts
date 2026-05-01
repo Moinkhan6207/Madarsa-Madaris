@@ -88,13 +88,17 @@ export class BranchController {
   static async list(req: Request, res: Response, next: NextFunction) {
     try {
       const tenantId = req.context!.tenantId!;
+      const { page, limit } = req.query;
       console.log(`[DEBUG] Fetching branches for tenant: ${tenantId}`);
-      const data = await branchService.listBranches(tenantId);
-      console.log(`[DEBUG] Branches found:`, data.length);
+      const data = await branchService.listBranches(tenantId, {
+        page: page ? Number(page) : undefined,
+        limit: limit ? Number(limit) : undefined,
+      });
+      console.log(`[DEBUG] Branches found:`, data.data.length);
       res.json({ success: true, data });
-    } catch (e) { 
+    } catch (e) {
       console.error(`[DEBUG] Branch fetch error:`, (e as any).message);
-      next(e); 
+      next(e);
     }
   }
 
@@ -131,13 +135,17 @@ export class SessionController {
   static async list(req: Request, res: Response, next: NextFunction) {
     try {
       const tenantId = req.context!.tenantId!;
+      const { page, limit } = req.query;
       console.log(`[DEBUG] Fetching sessions for tenant: ${tenantId}`);
-      const data = await sessionService.listSessions(tenantId);
-      console.log(`[DEBUG] Sessions found:`, data.length);
+      const data = await sessionService.listSessions(tenantId, {
+        page: page ? Number(page) : undefined,
+        limit: limit ? Number(limit) : undefined,
+      });
+      console.log(`[DEBUG] Sessions found:`, data.data.length);
       res.json({ success: true, data });
-    } catch (e) { 
+    } catch (e) {
       console.error(`[DEBUG] Session fetch error:`, (e as any).message);
-      next(e); 
+      next(e);
     }
   }
 

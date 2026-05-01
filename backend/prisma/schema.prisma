@@ -79,6 +79,7 @@ model Tenant {
   users            User[]
   auditLogs        AuditLog[]
   slugHistory      TenantSlugHistory[]
+  stats            TenantStats?
 }
 
 model TenantSlugHistory {
@@ -183,6 +184,8 @@ model Branch {
 
   @@unique([tenantId, name])
   @@index([tenantId])
+  @@index([createdAt])
+  @@index([status])
 }
 
 model AcademicSession {
@@ -198,6 +201,8 @@ model AcademicSession {
   tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
+  @@index([createdAt])
+  @@index([isCurrent])
 }
 
 model OnboardingProgress {
@@ -271,6 +276,8 @@ model User {
   userRoles       UserRole[]
 
   @@unique([tenantId, email])
+  @@index([tenantId])
+  @@index([createdAt])
 }
 
 model Role {
@@ -422,6 +429,9 @@ model Lead {
 
   @@index([tenantId])
   @@index([email])
+  @@index([status])
+  @@index([type])
+  @@index([createdAt])
 }
 
 model Media {
@@ -436,6 +446,23 @@ model Media {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([createdAt])
+  @@index([type])
+}
+
+model TenantStats {
+  id             String   @id @default(uuid())
+  tenantId       String   @unique
+  totalStudents  Int      @default(0)
+  totalTeachers  Int      @default(0)
+  totalLeads     Int      @default(0)
+  totalPages     Int      @default(0)
+  totalBranches  Int      @default(0)
+  lastUpdatedAt  DateTime @default(now())
+  createdAt      DateTime @default(now())
+  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
 }

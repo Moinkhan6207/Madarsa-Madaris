@@ -7,6 +7,9 @@ import { usePathname } from 'next/navigation';
 import { logout } from '@services/auth.service';
 import { Loader2, ArrowLeft } from 'lucide-react';
 
+// Prevent prerendering during build to avoid QueryClient errors
+export const dynamic = 'force-dynamic';
+
 export default function OnboardingLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const currentStep = pathname.split('/').pop() || 'profile';

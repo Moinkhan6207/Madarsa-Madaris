@@ -1,9 +1,10 @@
 'use client';
 import React from 'react';
+import Image from 'next/image';
 import { CheckCircle2, Star, Award, ShieldCheck } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-export default function AboutBlock({ content, config, settings }: any) {
+const AboutBlock = React.memo(({ content, config, settings }: any) => {
   const primary = settings?.primaryColor || '#10b981';
   const hasImage = !!content.imageUrl;
 
@@ -22,7 +23,14 @@ export default function AboutBlock({ content, config, settings }: any) {
           <motion.div initial={{ opacity: 0, x: -50 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.8 }} className="relative">
             <motion.div whileHover={{ rotateY: 10, rotateX: -5, scale: 1.02 }} style={{ perspective: 1000 }} className="aspect-[4/5] bg-gray-100 rounded-[4rem] overflow-hidden shadow-[0_50px_100px_-20px_rgba(0,0,0,0.15)] relative group cursor-pointer">
               {hasImage ? (
-                <img src={content.imageUrl} alt={content.title || 'About Us'} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                <Image
+                  src={content.imageUrl}
+                  alt={content.title || 'About Us'}
+                  fill
+                  className="object-cover transition-transform duration-700 group-hover:scale-110"
+                  sizes="(max-width: 1024px) 100vw, 50vw"
+                  loading="lazy"
+                />
               ) : (
                 <div className="w-full h-full flex flex-col items-center justify-center gap-6 bg-gradient-to-br from-gray-50 to-gray-200">
                   <motion.div animate={{ rotate: [0, 10, -10, 0] }} transition={{ duration: 5, repeat: Infinity }} className="w-32 h-32 rounded-[2.5rem] flex items-center justify-center text-white text-6xl font-black shadow-2xl relative z-10" style={{ background: `linear-gradient(135deg, ${primary}, ${primary}dd)` }}>ع</motion.div>
@@ -86,4 +94,8 @@ export default function AboutBlock({ content, config, settings }: any) {
         </div>
       </div>
     </section>;
-}
+});
+
+AboutBlock.displayName = 'AboutBlock';
+
+export default AboutBlock;

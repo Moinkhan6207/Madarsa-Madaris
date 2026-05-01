@@ -1,6 +1,7 @@
 import express, { Application, Request, Response, NextFunction } from 'express';
 import path from 'path';
 import cors from 'cors';
+import compression from 'compression';
 import { env } from './config/env';
 import { errorMiddleware, notFoundMiddleware } from './common/middleware/error.middleware';
 import { requestContextMiddleware, requestLoggingMiddleware } from './common/middleware/request-context.middleware';
@@ -9,15 +10,27 @@ import { platformTenantRoutes } from './modules/platform/routes/platform-tenant.
 import { authRoutes } from './modules/auth/routes/auth.routes';
 import { publicRoutes } from './modules/public/routes/public.routes';
 
-import { 
-  apiRateLimiter, 
-  authRateLimiter, 
+import {
+  apiRateLimiter,
+  authRateLimiter,
   tenantCreationRateLimiter,
-  onboardingFinalizeRateLimiter 
+  onboardingFinalizeRateLimiter
 } from './common/middleware/rate-limit.middleware';
 import { loggerContextMiddleware } from './common/middleware/logger-context.middleware';
 
 const app: Application = express();
+
+// HTTP compression (gzip/brotli) for reduced response size
+app.use(compression({
+  filter: (req, res) => {
+    if (req.headers['x-no-compression']) {
+      return false;
+    }
+    return compression.filter(req, res);
+  },
+  threshold: 1024, // Only compress responses larger than 1KB
+  level: 6, // Compression level (1-9, 6 is default balance)
+}));
 
 app.use(cors({
   origin: env.CORS_ORIGIN,
@@ -35,8 +48,19 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Serve static files from uploads directory
-app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+// Serve static files from uploads directory with cache headers for CDN
+// In production, configure CDN (Cloudflare, AWS CloudFront, etc.) to serve these
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads'), {
+  maxAge: '1y', // Cache for 1 year (static assets don't change)
+  etag: true,
+  lastModified: true,
+  setHeaders: (res) => {
+    // Set CORS headers for static assets
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    // Cache-Control header for CDN
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+  }
+}));
 
 app.use(requestContextMiddleware);
 app.use(requestLoggingMiddleware);

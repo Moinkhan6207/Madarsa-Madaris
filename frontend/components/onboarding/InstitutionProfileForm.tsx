@@ -7,6 +7,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { getProfile, updateProfile, updateOnboardingStep } from '@services/onboarding.service';
 import { FormField, inputClass, SubmitButton, Alert, SectionCard, SkeletonLoader } from '@components/ui/FormElements';
+import { useState, useEffect } from 'react';
 
 const schema = z.object({
   shortName: z.string().min(2, 'Short name must be at least 2 characters'),
@@ -36,12 +37,14 @@ type FormValues = z.infer<typeof schema>;
 
 export function InstitutionProfileForm() {
   const router = useRouter();
+  const [isMounted, setIsMounted] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: profile, isLoading } = useQuery({
     queryKey: ['profile'],
     queryFn: getProfile,
     retry: false,
+    enabled: isMounted,
   });
 
   const form = useForm<FormValues>({
@@ -86,7 +89,11 @@ export function InstitutionProfileForm() {
     },
   });
 
-  if (isLoading) return <SkeletonLoader rows={6} />;
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted || isLoading) return <SkeletonLoader rows={6} />;
 
   return (
     <SectionCard

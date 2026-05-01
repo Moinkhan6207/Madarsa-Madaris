@@ -9,6 +9,7 @@ import { Trash2, PlusCircle, CalendarDays, CheckCircle2 } from 'lucide-react';
 import { getSessions, createSession, deleteSession, updateOnboardingStep } from '@services/onboarding.service';
 import { FormField, inputClass, Alert, SectionCard, SkeletonLoader } from '@components/ui/FormElements';
 import type { AcademicSession } from '@/types/onboarding';
+import { useState, useEffect } from 'react';
 
 const schema = z.object({
   name: z.string().min(2, 'Session name is required'),
@@ -54,16 +55,23 @@ function SessionCard({ session, onDelete }: { session: AcademicSession; onDelete
 
 export function SessionForm() {
   const router = useRouter();
+  const [isMounted, setIsMounted] = useState(false);
   const queryClient = useQueryClient();
 
-  const { data: sessions = [], isLoading } = useQuery({
+  const { data: sessionsData, isLoading } = useQuery({
     queryKey: ['sessions'],
     queryFn: getSessions,
+    enabled: isMounted,
   });
 
+  const sessions = Array.isArray(sessionsData)
+    ? sessionsData
+    : Array.isArray((sessionsData as any)?.data)
+      ? (sessionsData as any).data
+      : [];
   const hasActive = sessions.some((s) => s.isCurrent);
 
-  const { register, handleSubmit, reset, watch, formState: { errors } } = useForm<FormValues>({
+  const { register, handleSubmit, reset, watch, getValues, trigger, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema as any),
     defaultValues: { isCurrent: !hasActive },
   });
@@ -89,7 +97,23 @@ export function SessionForm() {
     },
   });
 
-  if (isLoading) return <SkeletonLoader rows={4} />;
+  const saveAndContinueMutation = useMutation({
+    mutationFn: async (data: FormValues) => {
+      await createSession(data);
+      await updateOnboardingStep('sessionStep', 'COMPLETED');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sessions'] });
+      queryClient.invalidateQueries({ queryKey: ['onboarding'] });
+      router.push('/setup/review');
+    },
+  });
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted || isLoading) return <SkeletonLoader rows={4} />;
 
   const isCurrentWatched = watch('isCurrent');
 
@@ -112,6 +136,9 @@ export function SessionForm() {
         </h3>
         {(createMutation.error || deleteMutation.error) && (
           <Alert type="error" message={((createMutation.error || deleteMutation.error) as Error).message} />
+        )}
+        {saveAndContinueMutation.error && (
+          <Alert type="error" message={(saveAndContinueMutation.error as Error).message} />
         )}
         <form onSubmit={handleSubmit((d) => createMutation.mutate(d))} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -151,11 +178,25 @@ export function SessionForm() {
           ← Back
         </button>
         <button
-          onClick={() => finalizeMutation.mutate()}
-          disabled={sessions.length === 0 || finalizeMutation.isPending}
+          onClick={async () => {
+            const values = getValues();
+            const hasTypedSessionData = Boolean(
+              values.name?.trim() || values.startDate || values.endDate
+            );
+
+            if (!hasTypedSessionData && sessions.length > 0) {
+              finalizeMutation.mutate();
+              return;
+            }
+
+            const isValid = await trigger();
+            if (!isValid) return;
+            saveAndContinueMutation.mutate(getValues());
+          }}
+          disabled={finalizeMutation.isPending || saveAndContinueMutation.isPending}
           className="flex items-center gap-2 rounded-lg bg-emerald-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60 disabled:cursor-not-allowed"
         >
-          {finalizeMutation.isPending ? 'Saving...' : 'Continue →'}
+          {finalizeMutation.isPending || saveAndContinueMutation.isPending ? 'Saving...' : 'Continue →'}
         </button>
       </div>
     </SectionCard>

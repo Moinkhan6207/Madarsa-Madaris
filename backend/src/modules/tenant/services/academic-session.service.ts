@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { AppError } from '../../../common/errors/AppError';
+import { createPaginationResult } from '../../../common/utils/pagination';
 
 export interface CreateSessionDto {
   name: string;
@@ -11,11 +12,33 @@ export interface CreateSessionDto {
 export class AcademicSessionService {
   constructor(private readonly prisma: PrismaClient) {}
 
-  async listSessions(tenantId: string) {
-    return this.prisma.academicSession.findMany({
-      where: { tenantId, deletedAt: null },
-      orderBy: { startDate: 'desc' },
-    });
+  async listSessions(tenantId: string, params?: { page?: number; limit?: number }) {
+    const page = params?.page || 1;
+    const limit = params?.limit || 20;
+    const skip = (page - 1) * limit;
+
+    const [sessions, total] = await Promise.all([
+      this.prisma.academicSession.findMany({
+        where: { tenantId, deletedAt: null },
+        skip,
+        take: limit,
+        orderBy: { startDate: 'desc' },
+        select: {
+          id: true,
+          name: true,
+          startDate: true,
+          endDate: true,
+          isCurrent: true,
+          createdAt: true,
+          updatedAt: true,
+        }
+      }),
+      this.prisma.academicSession.count({
+        where: { tenantId, deletedAt: null }
+      })
+    ]);
+
+    return createPaginationResult(sessions, total, page, limit);
   }
 
   async createSession(tenantId: string, data: CreateSessionDto) {

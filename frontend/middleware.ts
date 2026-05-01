@@ -9,7 +9,7 @@ export function middleware(request: NextRequest) {
   // 1. Define segments
   const isAuthRoute = pathname.startsWith('/login') || pathname.startsWith('/register');
   const isPlatformRoute = pathname.startsWith('/platform');
-  const isTenantRoute = pathname.startsWith('/dashboard') || pathname.startsWith('/setup');
+  const isTenantRoute = pathname.startsWith('/dashboard') || pathname.startsWith('/setup') || pathname.startsWith('/pending');
   const isLandingRoute = pathname === '/';
 
   // 2. Auth Logic

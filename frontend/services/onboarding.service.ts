@@ -61,7 +61,10 @@ export const uploadBrandingImage = async (file: File, type: 'logo' | 'cover' | '
 // ── Branches ───────────────────────────────────────────────────────────────
 export const getBranches = async (): Promise<Branch[]> => {
   const res = await api.get('/tenant/branches');
-  return res.data.data;
+  const payload = res.data.data;
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.data)) return payload.data;
+  return [];
 };
 
 export const createBranch = async (data: Omit<Branch, 'id' | 'tenantId' | 'status'>): Promise<Branch> => {
@@ -81,7 +84,10 @@ export const deleteBranch = async (branchId: string): Promise<void> => {
 // ── Academic Sessions ──────────────────────────────────────────────────────
 export const getSessions = async (): Promise<AcademicSession[]> => {
   const res = await api.get('/tenant/academic-sessions');
-  return res.data.data;
+  const payload = res.data.data;
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.data)) return payload.data;
+  return [];
 };
 
 export const createSession = async (data: { name: string; startDate: string; endDate: string; isCurrent: boolean }): Promise<AcademicSession> => {

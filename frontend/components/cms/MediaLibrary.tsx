@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api';
 import { X, Upload, Trash2, Check, Image as ImageIcon, Loader2, Link as LinkIcon, Video, Film } from 'lucide-react';
@@ -176,7 +177,14 @@ export default function MediaLibrary({ onSelect, onClose, allowVideo = true }: M
                   key={item.id}
                   className="group relative aspect-square bg-gray-50 rounded-[2rem] overflow-hidden border-2 border-transparent hover:border-emerald-500 transition-all shadow-sm hover:shadow-xl hover:-translate-y-1"
                 >
-                  <img src={item.url} alt={item.fileName} className="w-full h-full object-cover" />
+                  <Image
+                    src={item.url}
+                    alt={item.fileName}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 768px) 50vw, 20vw"
+                    loading="lazy"
+                  />
                   <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all flex flex-col items-center justify-center gap-2 p-3">
                     <button
                       onClick={() => onSelect(item.url)}
@@ -237,7 +245,14 @@ export default function MediaLibrary({ onSelect, onClose, allowVideo = true }: M
                           const thumb = getYouTubeThumb(videoUrl);
                           return thumb ? (
                             <div className="relative w-full h-full">
-                              <img src={thumb} className="w-full h-full object-cover" alt="Video preview" />
+                              <Image
+                                src={thumb}
+                                alt="Video preview"
+                                fill
+                                className="object-cover"
+                                sizes="100vw"
+                                unoptimized
+                              />
                               <div className="absolute inset-0 flex items-center justify-center bg-black/30">
                                 <div className="w-16 h-16 bg-red-600 rounded-2xl flex items-center justify-center shadow-xl">
                                   <Video className="w-8 h-8 text-white fill-white" />

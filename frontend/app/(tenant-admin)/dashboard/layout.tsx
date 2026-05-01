@@ -1,15 +1,15 @@
 'use client';
 
-import { 
-  LayoutDashboard, 
-  Users, 
-  School, 
-  Settings, 
-  LogOut, 
-  MapPin, 
-  Calendar, 
-  HelpCircle, 
-  Globe, 
+import {
+  LayoutDashboard,
+  Users,
+  School,
+  Settings,
+  LogOut,
+  MapPin,
+  Calendar,
+  HelpCircle,
+  Globe,
   MessageSquare,
   Search,
   Bell,
@@ -17,14 +17,19 @@ import {
   X
 } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@lib/api';
 import { logout } from '@services/auth.service';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+
+// Prevent prerendering during build to avoid QueryClient errors
+export const dynamic = 'force-dynamic';
 
 export default function TenantDashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const queryClient = useQueryClient();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Close mobile menu when path changes
@@ -39,6 +44,28 @@ export default function TenantDashboardLayout({ children }: { children: React.Re
       return res.data.data;
     },
   });
+
+  // Prefetch dashboard data on hover
+  const prefetchDashboard = useCallback(() => {
+    queryClient.prefetchQuery({
+      queryKey: ['onboarding'],
+      queryFn: async () => {
+        const res = await api.get('/onboarding/status');
+        return res.data.data;
+      },
+    });
+  }, [queryClient]);
+
+  // Prefetch website builder data on hover
+  const prefetchWebsiteBuilder = useCallback(() => {
+    queryClient.prefetchQuery({
+      queryKey: ['cms-pages'],
+      queryFn: async () => {
+        const res = await api.get('/cms/pages');
+        return res.data.data;
+      },
+    });
+  }, [queryClient]);
 
   const navItems = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -57,7 +84,13 @@ export default function TenantDashboardLayout({ children }: { children: React.Re
           <div className="relative">
             <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-slate-200 group-hover:scale-105 transition-transform duration-300 overflow-hidden">
               {tenant?.logoUrl ? (
-                <img src={tenant.logoUrl} alt="Logo" className="w-full h-full object-cover" />
+                <Image
+                  src={tenant.logoUrl}
+                  alt="Logo"
+                  width={48}
+                  height={48}
+                  className="w-full h-full object-cover"
+                />
               ) : (
                 <span className="font-black text-xl">{tenant?.displayName?.[0] || 'I'}</span>
               )}
@@ -77,6 +110,9 @@ export default function TenantDashboardLayout({ children }: { children: React.Re
       <nav className="flex-1 px-4 space-y-1.5 overflow-y-auto custom-scrollbar pt-2">
         {navItems.map((item, i) => {
           const isActive = pathname === item.href;
+          const prefetchHandler = item.href === '/dashboard' ? prefetchDashboard :
+                                 item.href === '/dashboard/website-builder' ? prefetchWebsiteBuilder :
+                                 undefined;
           return (
             <div
               key={item.name}
@@ -85,9 +121,11 @@ export default function TenantDashboardLayout({ children }: { children: React.Re
             >
               <Link
                 href={item.href as any}
+                prefetch={true}
+                onMouseEnter={prefetchHandler}
                 className={`group flex items-center gap-3.5 px-4 py-3.5 rounded-2xl text-[14px] font-bold transition-all relative overflow-hidden ${
-                  isActive 
-                    ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/20' 
+                  isActive
+                    ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/20'
                     : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
                 }`}
               >
@@ -188,7 +226,14 @@ export default function TenantDashboardLayout({ children }: { children: React.Re
                     <p className="text-[11px] font-bold text-emerald-600 mt-1 uppercase tracking-wide">Standard Plan</p>
                 </div>
                 <div className="w-9 h-9 md:w-10 md:h-10 rounded-xl bg-slate-200 border border-slate-300 overflow-hidden shadow-inner">
-                    <img src={`https://ui-avatars.com/api/?name=${tenant?.displayName || 'User'}&background=0D9488&color=fff`} alt="User" />
+                    <Image
+                      src={`https://ui-avatars.com/api/?name=${tenant?.displayName || 'User'}&background=0D9488&color=fff`}
+                      alt="User"
+                      width={40}
+                      height={40}
+                      className="w-full h-full"
+                      unoptimized
+                    />
                 </div>
              </div>
           </div>

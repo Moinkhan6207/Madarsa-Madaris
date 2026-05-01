@@ -346,7 +346,39 @@ export class TenantService {
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
-        include: { profile: true, branding: true, settings: true }
+        select: {
+          id: true,
+          slug: true,
+          displayName: true,
+          status: true,
+          institutionType: true,
+          primaryEmail: true,
+          primaryPhone: true,
+          customDomain: true,
+          isDomainVerified: true,
+          createdAt: true,
+          updatedAt: true,
+          profile: {
+            select: {
+              shortName: true,
+              city: true,
+              state: true,
+              country: true,
+            }
+          },
+          branding: {
+            select: {
+              logoUrl: true,
+              primaryColor: true,
+            }
+          },
+          settings: {
+            select: {
+              primaryLanguage: true,
+              timezone: true,
+            }
+          }
+        }
       }),
       this.prisma.tenant.count({ where })
     ]);
@@ -379,7 +411,7 @@ export class TenantService {
     actorUserId: string
   ) {
     const { validateTenantStatusTransition } = await import('../validators/tenant.validator');
-    
+
     const updatedTenant = await this.prisma.$transaction(async (tx) => {
       const tenant = await tx.tenant.findUnique({
         where: { id: tenantId }
@@ -394,11 +426,11 @@ export class TenantService {
       const updated = await tx.tenant.update({
         where: { id: tenantId },
         data: { status: targetStatus as any },
-        include: { 
-          users: { 
+        include: {
+          users: {
             where: { isActive: true },
-            take: 1 
-          } 
+            take: 1
+          }
         }
       });
 
@@ -416,6 +448,9 @@ export class TenantService {
 
       return updated;
     });
+
+    // Clear cache after status update
+    this.clearTenantCache(tenantId);
 
     // Send Approval Email if activated
     if (targetStatus === 'ACTIVE' && updatedTenant.users[0]) {

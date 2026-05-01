@@ -1,19 +1,19 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { cmsService, Page } from '@/services/cms.service';
-import { 
-  Plus, 
-  Edit2, 
-  Trash2, 
-  Settings, 
-  Globe, 
-  Home, 
-  Star, 
-  Eye, 
-  CheckCircle2, 
-  MoreVertical, 
+import {
+  Plus,
+  Edit2,
+  Trash2,
+  Settings,
+  Globe,
+  Home,
+  Star,
+  Eye,
+  CheckCircle2,
+  MoreVertical,
   ExternalLink,
   Copy,
   Layout,
@@ -22,6 +22,9 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
+
+// Prevent prerendering during build to avoid QueryClient errors
+export const dynamic = 'force-dynamic';
 
 function Toast({ message, type }: { message: string; type: 'success' | 'error' }) {
   return (
@@ -39,21 +42,22 @@ function Toast({ message, type }: { message: string; type: 'success' | 'error' }
   );
 }
 
-function PageCard({ 
-  page, 
-  tenantSlug, 
-  onDelete, 
-  onTogglePublish, 
-  onSetHome, 
-  i 
-}: { 
-  page: Page; 
-  tenantSlug: string; 
+// Memoized PageCard to prevent unnecessary re-renders
+const PageCard = React.memo(({
+  page,
+  tenantSlug,
+  onDelete,
+  onTogglePublish,
+  onSetHome,
+  i
+}: {
+  page: Page;
+  tenantSlug: string;
   onDelete: (id: string) => void;
   onTogglePublish: (id: string, status: boolean) => void;
   onSetHome: (id: string) => void;
   i: number;
-}) {
+}) => {
   const publicUrl = tenantSlug
     ? `/public/${tenantSlug}${page.slug === 'home' ? '' : '/' + page.slug}`
     : null;
@@ -70,7 +74,7 @@ function PageCard({
         <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${page.isPublished ? 'bg-emerald-50 text-emerald-600 ring-4 ring-emerald-50' : 'bg-amber-50 text-amber-600 ring-4 ring-amber-50'}`}>
             {page.isHomePage ? <Home className="w-6 h-6" /> : <Layout className="w-6 h-6" />}
         </div>
-        
+
         <div className="flex gap-1 opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 transition-all duration-300">
              {publicUrl && (
                 <a
@@ -108,8 +112,8 @@ function PageCard({
             <button
                 onClick={() => onTogglePublish(page.id!, !page.isPublished)}
                 className={`flex-1 items-center justify-center py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${
-                    page.isPublished 
-                    ? 'bg-emerald-500 text-white border-emerald-500 shadow-lg shadow-emerald-500/20' 
+                    page.isPublished
+                    ? 'bg-emerald-500 text-white border-emerald-500 shadow-lg shadow-emerald-500/20'
                     : 'bg-white text-slate-400 border-slate-100 hover:border-slate-200'
                 }`}
             >
@@ -130,6 +134,7 @@ function PageCard({
       {/* Footer / Main Action */}
       <Link
         href={`/dashboard/website-builder/builder/${page.id}`}
+        prefetch={true}
         className="w-full py-4 bg-slate-900 group-hover:bg-emerald-600 text-white rounded-2xl font-black text-sm text-center transition-all flex items-center justify-center gap-2 shadow-lg shadow-slate-900/10 group-hover:shadow-emerald-600/20"
       >
         <Edit2 className="w-4 h-4" />
@@ -137,12 +142,19 @@ function PageCard({
       </Link>
     </motion.div>
   );
-}
+});
+
+PageCard.displayName = 'PageCard';
 
 export default function WebsiteBuilderPage() {
   const queryClient = useQueryClient();
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
-  const [tenantSlug, setTenantSlug] = useState<string>('');
+  const [tenantSlug, setTenantSlug] = useState('');
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newPageTitle, setNewPageTitle] = useState('');
+  const [newPageSlug, setNewPageSlug] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
 
   useEffect(() => {
     const resolveSlug = async () => {
@@ -192,6 +204,10 @@ export default function WebsiteBuilderPage() {
   const { data, isLoading } = useQuery({
     queryKey: ['cms-pages'],
     queryFn: () => cmsService.listPages(),
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 
   const deleteMutation = useMutation({
@@ -240,7 +256,23 @@ export default function WebsiteBuilderPage() {
     onError: (err: any) => showToast(err?.message || 'Failed to create page', 'error'),
   });
 
-  const pages = data?.data?.pages || [];
+  const pages = useMemo(() => data?.data?.pages || [], [data?.data?.pages]);
+
+  // Pagination logic
+  const totalPages = Math.ceil(pages.length / itemsPerPage);
+  const paginatedPages = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return pages.slice(startIndex, startIndex + itemsPerPage);
+  }, [pages, currentPage]);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  // Reset to page 1 when pages change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [pages.length]);
 
   const handleCreatePage = () => {
     const title = window.prompt('Enter page title:');
@@ -282,6 +314,7 @@ export default function WebsiteBuilderPage() {
           </button>
           <Link
             href="/dashboard/website-builder/settings"
+            prefetch={true}
             className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3.5 bg-white border border-slate-200 text-slate-600 rounded-2xl hover:bg-slate-50 transition-all font-bold shadow-sm"
           >
             <Settings className="w-5 h-5" />
@@ -337,27 +370,62 @@ export default function WebsiteBuilderPage() {
           </div>
         </motion.div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-8">
-          {pages.map((page: Page, i: number) => (
-            <PageCard 
-                key={page.id} 
-                page={page} 
-                tenantSlug={tenantSlug}
-                onDelete={(id) => {
-                    if (confirm(`Delete "${page.title}"? This cannot be undone.`)) {
-                        deleteMutation.mutate(id);
-                    }
-                }}
-                onTogglePublish={(id, status) => togglePublishMutation.mutate({ id, isPublished: status })}
-                onSetHome={(id) => {
-                    if (confirm('Set this page as the main homepage?')) {
-                        setHomePageMutation.mutate(id);
-                    }
-                }}
-                i={i}
-            />
-          ))}
-        </div>
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-8">
+            {paginatedPages.map((page: Page, i: number) => (
+              <PageCard
+                  key={page.id}
+                  page={page}
+                  tenantSlug={tenantSlug}
+                  onDelete={(id) => {
+                      if (confirm(`Delete "${page.title}"? This cannot be undone.`)) {
+                          deleteMutation.mutate(id);
+                      }
+                  }}
+                  onTogglePublish={(id, status) => togglePublishMutation.mutate({ id, isPublished: status })}
+                  onSetHome={(id) => {
+                      if (confirm('Set this page as the main homepage?')) {
+                          setHomePageMutation.mutate(id);
+                      }
+                  }}
+                  i={i}
+              />
+            ))}
+          </div>
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2 mt-8">
+              <button
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-bold text-sm"
+              >
+                Previous
+              </button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                <button
+                  key={page}
+                  onClick={() => handlePageChange(page)}
+                  className={`w-10 h-10 rounded-xl font-bold text-sm transition-all ${
+                    currentPage === page
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  {page}
+                </button>
+              ))}
+              <button
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-bold text-sm"
+              >
+                Next
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

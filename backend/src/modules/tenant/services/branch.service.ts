@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { AppError } from '../../../common/errors/AppError';
+import { createPaginationResult } from '../../../common/utils/pagination';
 
 export interface CreateBranchDto {
   name: string;
@@ -21,11 +22,42 @@ export interface UpdateBranchDto extends Partial<CreateBranchDto> {}
 export class BranchService {
   constructor(private readonly prisma: PrismaClient) {}
 
-  async listBranches(tenantId: string) {
-    return this.prisma.branch.findMany({
-      where: { tenantId, deletedAt: null },
-      orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
-    });
+  async listBranches(tenantId: string, params?: { page?: number; limit?: number }) {
+    const page = params?.page || 1;
+    const limit = params?.limit || 20;
+    const skip = (page - 1) * limit;
+
+    const [branches, total] = await Promise.all([
+      this.prisma.branch.findMany({
+        where: { tenantId, deletedAt: null },
+        skip,
+        take: limit,
+        orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
+        select: {
+          id: true,
+          code: true,
+          name: true,
+          addressLine1: true,
+          addressLine2: true,
+          city: true,
+          state: true,
+          country: true,
+          postalCode: true,
+          phone: true,
+          email: true,
+          headName: true,
+          isPrimary: true,
+          status: true,
+          createdAt: true,
+          updatedAt: true,
+        }
+      }),
+      this.prisma.branch.count({
+        where: { tenantId, deletedAt: null }
+      })
+    ]);
+
+    return createPaginationResult(branches, total, page, limit);
   }
 
   async createBranch(tenantId: string, data: CreateBranchDto) {

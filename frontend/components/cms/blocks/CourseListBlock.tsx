@@ -4,7 +4,7 @@ import React from 'react';
 import { BookOpen, Clock, Users, ArrowRight, Star } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-export default function CourseListBlock({ content, config, settings }: any) {
+const CourseListBlock = React.memo(({ content, config, settings }: any) => {
   const primary = settings?.primaryColor || '#10b981';
   const courses = content.courses || [
     { title: 'Hifz-e-Quran', duration: '3-4 Years', students: '500+', description: 'Memorization of the Holy Quran with Tajweed.' },
@@ -124,5 +124,9 @@ export default function CourseListBlock({ content, config, settings }: any) {
       </div>
     </section>
   );
-}
+});
+
+CourseListBlock.displayName = 'CourseListBlock';
+
+export default CourseListBlock;
 

@@ -2,11 +2,11 @@
 import React from 'react';
 import { motion, useInView } from 'framer-motion';
 
-function CountUp({ value }: { value: string }) {
+const CountUp = React.memo(({ value }: { value: string }) => {
   const ref = React.useRef(null);
   const isInView = useInView(ref, { once: true });
   const [displayValue, setDisplayValue] = React.useState(0);
-  
+
   const numericValue = parseInt(value?.replace(/[^0-9]/g, '') || '0');
   const suffix = value?.replace(/[0-9]/g, '') || '';
 
@@ -16,7 +16,7 @@ function CountUp({ value }: { value: string }) {
       const end = numericValue;
       const duration = 2000;
       const increment = Math.ceil(end / (duration / 16));
-      
+
       const timer = setInterval(() => {
         start += increment;
         if (start >= end) {
@@ -31,9 +31,11 @@ function CountUp({ value }: { value: string }) {
   }, [isInView, numericValue]);
 
   return <span ref={ref}>{displayValue}{suffix}</span>;
-}
+});
 
-export default function StatsBlock({ content, config, settings }: any) {
+CountUp.displayName = 'CountUp';
+
+const StatsBlock = React.memo(({ content, config, settings }: any) => {
   const primary = settings?.primaryColor || '#10b981';
   const secondary = settings?.secondaryColor || '#0f172a';
   const stats = content.stats || [
@@ -84,4 +86,8 @@ export default function StatsBlock({ content, config, settings }: any) {
         </div>
       </div>
     </section>;
-}
+});
+
+StatsBlock.displayName = 'StatsBlock';
+
+export default StatsBlock;

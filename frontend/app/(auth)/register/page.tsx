@@ -17,6 +17,17 @@ const schema = z.object({
   slug: z.string().min(3, 'Slug must be at least 3 characters').regex(/^[a-z0-9-]+$/, 'Slug can only contain lowercase letters, numbers, and hyphens'),
   institutionType: z.enum(['SMALL_LOCAL_MADARSA', 'RESIDENTIAL_MADARSA', 'HYBRID_DEENI_SCHOOL', 'TRUST_RUN_IDARA', 'MASJID_MADARSA_COMBINED', 'OTHER']),
   adminUser: z.object({
+    fullName: z.string(),
+    email: z.string(),
+    password: z.string(),
+  }).optional(),
+});
+
+const fullSchema = z.object({
+  displayName: z.string().min(3, 'Institution name must be at least 3 characters'),
+  slug: z.string().min(3, 'Slug must be at least 3 characters').regex(/^[a-z0-9-]+$/, 'Slug can only contain lowercase letters, numbers, and hyphens'),
+  institutionType: z.enum(['SMALL_LOCAL_MADARSA', 'RESIDENTIAL_MADARSA', 'HYBRID_DEENI_SCHOOL', 'TRUST_RUN_IDARA', 'MASJID_MADARSA_COMBINED', 'OTHER']),
+  adminUser: z.object({
     fullName: z.string().min(2, 'Full name is required'),
     email: z.string().email('Invalid email address'),
     password: z.string().min(8, 'Password must be at least 8 characters'),
@@ -30,9 +41,16 @@ export default function RegisterPage() {
   const [step, setStep] = useState(1);
   const [error, setError] = useState<string | null>(null);
 
-  const { register, handleSubmit, watch, formState: { errors } } = useForm<FormValues>({
+  const { register, handleSubmit, watch, formState: { errors }, trigger } = useForm<FormValues>({
     resolver: zodResolver(schema as any),
-    mode: 'onChange',
+    mode: 'onSubmit',
+    defaultValues: {
+      adminUser: {
+        fullName: '',
+        email: '',
+        password: '',
+      },
+    },
   });
 
   const mutation = useMutation({
@@ -71,7 +89,15 @@ export default function RegisterPage() {
       <div className="bg-white p-8 lg:p-10 rounded-3xl shadow-xl shadow-gray-200/50 border border-gray-100 relative overflow-hidden">
         {error && <Alert type="error" message={error} className="mb-8" />}
         
-        <form onSubmit={handleSubmit((d) => mutation.mutate(d))} className="space-y-6">
+        <form onSubmit={handleSubmit(async (d) => {
+          try {
+            const validatedData = fullSchema.parse(d);
+            mutation.mutate(validatedData as any);
+          } catch (err: any) {
+            console.error('Validation error:', err);
+            setError('Please fill in all required fields correctly.');
+          }
+        })} className="space-y-6">
           <AnimatePresence mode="wait">
             {step === 1 ? (
               <motion.div 
@@ -129,7 +155,12 @@ export default function RegisterPage() {
 
                 <button
                   type="button"
-                  onClick={() => setStep(2)}
+                  onClick={async () => {
+                    const isValid = await trigger(['displayName', 'slug', 'institutionType']);
+                    if (isValid) {
+                      setStep(2);
+                    }
+                  }}
                   className="w-full flex justify-center items-center gap-2 py-4 px-6 border border-transparent rounded-2xl shadow-lg shadow-emerald-600/20 text-base font-black text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-500/40 transition-all active:scale-[0.98] group"
                 >
                   Continue to Admin Details

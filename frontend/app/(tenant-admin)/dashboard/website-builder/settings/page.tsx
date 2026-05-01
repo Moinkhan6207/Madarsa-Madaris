@@ -1,11 +1,15 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, startTransition } from 'react';
+import Image from 'next/image';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { cmsService, WebsiteSettings } from '@/services/cms.service';
 import { useRouter } from 'next/navigation';
 import { Save, Globe, Palette, Share2, Info, CheckCircle2, Image as ImageIcon, X, ArrowLeft } from 'lucide-react';
 import MediaLibrary from '@/components/cms/MediaLibrary';
+
+// Prevent prerendering during build to avoid QueryClient errors
+export const dynamic = 'force-dynamic';
 
 function Toast({ message, type }: { message: string; type: 'success' | 'error' }) {
   return (
@@ -54,7 +58,34 @@ export default function WebsiteSettingsPage() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  if (isLoading) return <div className="p-8 animate-pulse text-gray-400">Loading settings...</div>;
+  if (isLoading) return (
+    <div className="max-w-5xl space-y-8 pb-20">
+      <div className="flex justify-between items-end border-b border-gray-100 pb-6">
+        <div className="space-y-4">
+          <div className="h-8 w-48 bg-gray-200 rounded animate-pulse"></div>
+          <div className="h-4 w-64 bg-gray-100 rounded animate-pulse"></div>
+        </div>
+        <div className="h-12 w-32 bg-gray-100 rounded-xl animate-pulse"></div>
+      </div>
+      <div className="flex flex-col md:flex-row gap-8">
+        <div className="w-full md:w-64 space-y-2">
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} className="h-12 bg-gray-100 rounded-xl animate-pulse"></div>
+          ))}
+        </div>
+        <div className="flex-1 bg-white rounded-[2.5rem] border border-gray-100 p-10 min-h-[500px]">
+          <div className="space-y-6">
+            <div className="h-8 w-48 bg-gray-200 rounded animate-pulse"></div>
+            <div className="space-y-4">
+              <div className="h-4 w-full bg-gray-100 rounded animate-pulse"></div>
+              <div className="h-20 w-full bg-gray-100 rounded animate-pulse"></div>
+              <div className="h-4 w-3/4 bg-gray-100 rounded animate-pulse"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
   const tabs = [
     { id: 'general', name: 'General Information', icon: Info },
@@ -78,8 +109,8 @@ export default function WebsiteSettingsPage() {
 
       <div className="flex justify-between items-end border-b border-gray-100 pb-6">
         <div>
-          <button 
-            onClick={() => router.push('/dashboard/website-builder')}
+          <button
+            onClick={() => startTransition(() => router.push('/dashboard/website-builder'))}
             className="flex items-center gap-2 mb-4 text-[11px] font-black uppercase tracking-widest text-gray-400 hover:text-gray-900 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -173,22 +204,28 @@ export default function WebsiteSettingsPage() {
                 <div>
                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 ml-1">Institution Logo</label>
                    <div className="flex items-center gap-6">
-                      <div className="w-24 h-24 bg-gray-50 border-2 border-dashed border-gray-100 rounded-3xl flex items-center justify-center overflow-hidden">
+                      <div className="w-24 h-24 bg-gray-50 border-2 border-dashed border-gray-100 rounded-3xl flex items-center justify-center overflow-hidden relative">
                         {formData.logoUrl ? (
-                          <img src={formData.logoUrl} alt="Logo" className="w-full h-full object-contain" />
+                          <Image
+                            src={formData.logoUrl}
+                            alt="Logo"
+                            fill
+                            className="object-contain"
+                            sizes="96px"
+                          />
                         ) : (
                           <ImageIcon className="w-8 h-8 text-gray-200" />
                         )}
                       </div>
                       <div className="flex gap-2">
-                        <button 
+                        <button
                           onClick={() => setMediaLibraryOpen(true)}
                           className="px-6 py-2.5 bg-gray-900 text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-black transition-all"
                         >
                           Select Logo
                         </button>
                         {formData.logoUrl && (
-                          <button 
+                          <button
                             onClick={() => setFormData(prev => ({ ...prev, logoUrl: '' }))}
                             className="p-2.5 text-red-500 hover:bg-red-50 rounded-xl transition-all border border-red-100"
                           >

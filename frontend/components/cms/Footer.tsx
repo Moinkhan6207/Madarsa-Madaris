@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Mail, Phone, MapPin } from 'lucide-react';
 
 // Social Icons
@@ -69,7 +70,13 @@ export default function Footer({ settings, tenant }: any) {
           <div className="col-span-1 md:col-span-1">
             <div className="flex items-center gap-3 mb-6">
               {settings?.logoUrl ? (
-                <img src={settings.logoUrl} alt={tenant?.displayName} className="h-10 w-auto object-contain" />
+                <Image
+                  src={settings.logoUrl}
+                  alt={tenant?.displayName || 'Logo'}
+                  width={40}
+                  height={40}
+                  className="h-10 w-auto object-contain"
+                />
               ) : (
                 <div
                   className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-black"
@@ -120,6 +127,7 @@ export default function Footer({ settings, tenant }: any) {
                 <li key={link.slug}>
                   <Link
                     href={`${baseUrl}${link.slug ? '/' + link.slug : ''}`}
+                    prefetch={true}
                     className="hover:text-white transition-colors hover:translate-x-1 inline-block"
                   >
                     {link.label}
