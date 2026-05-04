@@ -7,9 +7,7 @@ import { cmsService, WebsiteSettings } from '@/services/cms.service';
 import { useRouter } from 'next/navigation';
 import { Save, Globe, Palette, Share2, Info, CheckCircle2, Image as ImageIcon, X, ArrowLeft } from 'lucide-react';
 import MediaLibrary from '@/components/cms/MediaLibrary';
-
-// Prevent prerendering during build to avoid QueryClient errors
-export const dynamic = 'force-dynamic';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 
 function Toast({ message, type }: { message: string; type: 'success' | 'error' }) {
   return (
@@ -23,6 +21,7 @@ function Toast({ message, type }: { message: string; type: 'success' | 'error' }
 }
 
 export default function WebsiteSettingsPage() {
+  const { t, direction } = useTranslation();
   const router = useRouter();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('general');
@@ -48,9 +47,9 @@ export default function WebsiteSettingsPage() {
     mutationFn: (data: WebsiteSettings) => cmsService.updateSettings(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cms-settings'] });
-      showToast('Settings saved successfully!');
+      showToast(t('websiteSettings.saved'));
     },
-    onError: () => showToast('Failed to save settings', 'error'),
+    onError: () => showToast(t('websiteSettings.saveFailed'), 'error'),
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -88,14 +87,14 @@ export default function WebsiteSettingsPage() {
   );
 
   const tabs = [
-    { id: 'general', name: 'General Information', icon: Info },
-    { id: 'appearance', name: 'Branding & Colors', icon: Palette },
-    { id: 'contact', name: 'Contact Details', icon: Globe },
-    { id: 'social', name: 'Social Links', icon: Share2 },
+    { id: 'general', name: t('websiteSettings.generalInformation'), icon: Info },
+    { id: 'appearance', name: t('websiteSettings.brandingColors'), icon: Palette },
+    { id: 'contact', name: t('websiteSettings.contactDetails'), icon: Globe },
+    { id: 'social', name: t('websiteSettings.socialLinks'), icon: Share2 },
   ];
 
   return (
-    <div className="max-w-5xl space-y-8 pb-20">
+    <div className="max-w-5xl space-y-8 pb-20" dir={direction}>
       {toast && <Toast message={toast.message} type={toast.type} />}
       {mediaLibraryOpen && (
         <MediaLibrary 
@@ -114,20 +113,20 @@ export default function WebsiteSettingsPage() {
             className="flex items-center gap-2 mb-4 text-[11px] font-black uppercase tracking-widest text-gray-400 hover:text-gray-900 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to Website Builder
+            {t('websiteSettings.backToBuilder')}
           </button>
-          <h1 className="text-3xl font-bold text-gray-900 tracking-tight text-[var(--primary-color)]">Site Settings</h1>
-          <p className="text-gray-500 mt-1 font-medium">Configure your institution's public website identity.</p>
+          <h1 className="text-3xl font-bold text-gray-900 tracking-tight text-[var(--primary-color)]">{t('websiteSettings.title')}</h1>
+          <p className="text-gray-500 mt-1 font-medium">{t('websiteSettings.subtitle')}</p>
         </div>
         <button
           onClick={() => updateMutation.mutate(formData)}
           disabled={updateMutation.isPending}
           className="flex items-center gap-2 px-8 py-4 bg-gray-900 text-white rounded-2xl hover:bg-black transition-all font-black shadow-xl disabled:opacity-50 uppercase tracking-widest text-sm"
         >
-          {updateMutation.isPending ? 'Saving...' : (
+          {updateMutation.isPending ? t('websiteSettings.saving') : (
             <>
               <Save className="w-4 h-4" />
-              Save Changes
+              {t('websiteSettings.saveChanges')}
             </>
           )}
         </button>
@@ -157,7 +156,7 @@ export default function WebsiteSettingsPage() {
           {activeTab === 'general' && (
             <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
               <div>
-                <h3 className="text-lg font-black text-gray-900 border-b border-gray-50 pb-4 mb-8 uppercase tracking-tighter">General Website Info</h3>
+                <h3 className="text-lg font-black text-gray-900 border-b border-gray-50 pb-4 mb-8 uppercase tracking-tighter">{t('websiteSettings.generalInformation')}</h3>
               </div>
               <div className="space-y-6">
                 <div>
@@ -197,7 +196,7 @@ export default function WebsiteSettingsPage() {
 
           {activeTab === 'appearance' && (
             <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
-              <h3 className="text-lg font-black text-gray-900 border-b border-gray-50 pb-4 mb-8 uppercase tracking-tighter">Branding & Colors</h3>
+              <h3 className="text-lg font-black text-gray-900 border-b border-gray-50 pb-4 mb-8 uppercase tracking-tighter">{t('websiteSettings.brandingColors')}</h3>
               
               <div className="space-y-8">
                 {/* Logo Selection */}

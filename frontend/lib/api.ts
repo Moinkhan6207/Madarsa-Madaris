@@ -1,98 +1,129 @@
-import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig, AxiosResponse } from 'axios';
-import { 
-  ApiErrorResponse, 
-  FrontendApiError, 
-} from '@/types/api-error';
+import { ApiErrorResponse, FrontendApiError } from '@/types/api-error';
 import { removeCookie } from '@/lib/cookies';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api/v1';
 
-export const api: AxiosInstance = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 30000,
-  headers: {
-    // We remove the default Content-Type to allow Axios to automatically
-    // set the correct header (e.g., multipart/form-data for FormData)
-  },
-  withCredentials: true,
-});
+type RequestConfig = {
+  headers?: Record<string, string>;
+  params?: Record<string, string | number | boolean | null | undefined>;
+  timeout?: number;
+};
 
-// Request Interceptor
-api.interceptors.request.use(
-  (config: InternalAxiosRequestConfig): InternalAxiosRequestConfig => {
-    // Add auth token if available
-    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-    if (token && config.headers) {
-      config.headers.set('Authorization', `Bearer ${token}`);
-    }
+type MaybeConfig = RequestConfig | Record<string, any> | undefined;
 
-    // Add tenant context if available
-    const tenantId = typeof window !== 'undefined' ? localStorage.getItem('tenant_id') : null;
-    if (tenantId && config.headers) {
-      config.headers.set('x-tenant-id', tenantId);
-    }
-
-    return config;
-  },
-  (error: AxiosError): Promise<AxiosError> => {
-    return Promise.reject(error);
+const normalizeConfig = (config?: MaybeConfig): RequestConfig => {
+  if (!config) return {};
+  if ('headers' in config || 'params' in config || 'timeout' in config) {
+    return config as RequestConfig;
   }
-);
+  return { params: config as Record<string, string | number | boolean | null | undefined> };
+};
 
-// Response Interceptor
-api.interceptors.response.use(
-  (response: AxiosResponse): AxiosResponse => response,
-  (error: AxiosError<ApiErrorResponse>): Promise<never> => {
-    const normalizedError = normalizeAxiosError(error);
-    
-    // Handle specific error scenarios (Redirect to login)
-    if (normalizedError.statusCode === 401) {
-      if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        removeCookie('auth_token');
-        removeCookie('user_role');
-        window.location.href = '/login?error=session_expired';
-      }
-    }
+const buildUrl = (path: string, params?: RequestConfig['params']) => {
+  const base = path.startsWith('http') ? path : `${API_BASE_URL}${path}`;
+  if (!params) return base;
+  const qs = new URLSearchParams();
+  Object.entries(params).forEach(([k, v]) => {
+    if (v !== undefined && v !== null) qs.append(k, String(v));
+  });
+  const query = qs.toString();
+  return query ? `${base}${base.includes('?') ? '&' : '?'}${query}` : base;
+};
 
-    return Promise.reject(normalizedError);
+const normalizeHttpError = async (res: Response): Promise<FrontendApiError> => {
+  let payload: ApiErrorResponse | undefined;
+  try {
+    payload = await res.json();
+  } catch {
+    payload = undefined;
   }
-);
 
-// Error Normalization Helper
-const normalizeAxiosError = (error: AxiosError<ApiErrorResponse>): FrontendApiError => {
-  if (error.response?.data) {
-    const apiError = error.response.data;
+  if (payload?.error) {
     return new FrontendApiError(
-      apiError.error?.message || 'An error occurred',
-      apiError.error?.code || 'UNKNOWN_ERROR',
-      error.response.status || 500,
-      apiError.error?.details,
-      apiError.requestId || (error.response.headers['x-request-id'] as string),
-      apiError.timestamp || new Date().toISOString(),
+      payload.error.message || 'An error occurred',
+      payload.error.code || 'UNKNOWN_ERROR',
+      res.status || 500,
+      payload.error.details,
+      payload.requestId,
+      payload.timestamp || new Date().toISOString(),
       true
     );
   }
 
-  if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
-    return new FrontendApiError('Request timed out. Please try again.', 'TIMEOUT_ERROR', 0);
-  }
-
-  if (!error.response) {
-    return new FrontendApiError('Network connection failed. Please check your internet connection.', 'NETWORK_ERROR', 0);
-  }
-
-  return new FrontendApiError(error.message || 'An unexpected error occurred', 'UNKNOWN_ERROR', error.response?.status || 500);
+  return new FrontendApiError(`Request failed with status ${res.status}`, 'UNKNOWN_ERROR', res.status || 500);
 };
 
-// Typed API Client
+const handle401 = (error: FrontendApiError) => {
+  if (error.statusCode === 401 && typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    removeCookie('auth_token');
+    removeCookie('user_role');
+    window.location.href = '/login?error=session_expired';
+  }
+};
+
+const request = async <T>(method: string, path: string, body?: any, inputConfig?: MaybeConfig): Promise<T> => {
+  const config = normalizeConfig(inputConfig);
+  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+  const tenantId = typeof window !== 'undefined' ? localStorage.getItem('tenant_id') : null;
+
+  const headers: Record<string, string> = {
+    ...(config?.headers || {}),
+  };
+
+  if (token) headers.Authorization = `Bearer ${token}`;
+  if (tenantId) headers['x-tenant-id'] = tenantId;
+
+  const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
+  if (!isFormData && body !== undefined && !headers['Content-Type']) {
+    headers['Content-Type'] = 'application/json';
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), config?.timeout ?? 30000);
+
+  try {
+    const res = await fetch(buildUrl(path, config?.params), {
+      method,
+      headers,
+      credentials: 'include',
+      signal: controller.signal,
+      body: body === undefined ? undefined : (isFormData ? body : JSON.stringify(body)),
+    });
+
+    if (!res.ok) {
+      const err = await normalizeHttpError(res);
+      handle401(err);
+      throw err;
+    }
+
+    return (await res.json()) as T;
+  } catch (error: any) {
+    if (error instanceof FrontendApiError) throw error;
+    if (error?.name === 'AbortError') {
+      throw new FrontendApiError('Request timed out. Please try again.', 'TIMEOUT_ERROR', 0);
+    }
+    throw new FrontendApiError('Network connection failed. Please check your internet connection.', 'NETWORK_ERROR', 0);
+  } finally {
+    clearTimeout(timeout);
+  }
+};
+
 export const apiClient = {
-  get: <T>(url: string, config?: any) => api.get<T>(url, config).then((r) => r.data),
-  post: <T>(url: string, data?: any, config?: any) => api.post<T>(url, data, config).then((r) => r.data),
-  put: <T>(url: string, data?: any, config?: any) => api.put<T>(url, data, config).then((r) => r.data),
-  patch: <T>(url: string, data?: any, config?: any) => api.patch<T>(url, data, config).then((r) => r.data),
-  delete: <T>(url: string, config?: any) => api.delete<T>(url, config).then((r) => r.data),
+  get: <T>(url: string, config?: MaybeConfig) => request<T>('GET', url, undefined, config),
+  post: <T>(url: string, data?: any, config?: MaybeConfig) => request<T>('POST', url, data, config),
+  put: <T>(url: string, data?: any, config?: MaybeConfig) => request<T>('PUT', url, data, config),
+  patch: <T>(url: string, data?: any, config?: MaybeConfig) => request<T>('PATCH', url, data, config),
+  delete: <T>(url: string, config?: MaybeConfig) => request<T>('DELETE', url, undefined, config),
 };
 
-export default api;
+export const api = {
+  get: async (url: string, config?: MaybeConfig) => ({ data: await request<any>('GET', url, undefined, config) }),
+  post: async (url: string, data?: any, config?: MaybeConfig) => ({ data: await request<any>('POST', url, data, config) }),
+  put: async (url: string, data?: any, config?: MaybeConfig) => ({ data: await request<any>('PUT', url, data, config) }),
+  patch: async (url: string, data?: any, config?: MaybeConfig) => ({ data: await request<any>('PATCH', url, data, config) }),
+  delete: async (url: string, config?: MaybeConfig) => ({ data: await request<any>('DELETE', url, undefined, config) }),
+};
+
+export default apiClient;

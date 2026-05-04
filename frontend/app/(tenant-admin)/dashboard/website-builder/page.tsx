@@ -21,24 +21,18 @@ import {
   AlertCircle
 } from 'lucide-react';
 import Link from 'next/link';
-import { motion, AnimatePresence } from 'framer-motion';
-
-// Prevent prerendering during build to avoid QueryClient errors
-export const dynamic = 'force-dynamic';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 
 function Toast({ message, type }: { message: string; type: 'success' | 'error' }) {
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 50, x: '-50%' }}
-      animate={{ opacity: 1, y: 0, x: '-50%' }}
-      exit={{ opacity: 0, y: 20, x: '-50%' }}
+    <div
       className={`fixed bottom-8 left-1/2 z-[999] px-6 py-4 rounded-2xl shadow-2xl text-sm font-black flex items-center gap-3 border ${
         type === 'success' ? 'bg-emerald-600 text-white border-emerald-500' : 'bg-red-600 text-white border-red-500'
       }`}
     >
       {type === 'success' ? <CheckCircle2 className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
       {message}
-    </motion.div>
+    </div>
   );
 }
 
@@ -49,7 +43,8 @@ const PageCard = React.memo(({
   onDelete,
   onTogglePublish,
   onSetHome,
-  i
+  i,
+  t
 }: {
   page: Page;
   tenantSlug: string;
@@ -57,16 +52,14 @@ const PageCard = React.memo(({
   onTogglePublish: (id: string, status: boolean) => void;
   onSetHome: (id: string) => void;
   i: number;
+  t: (key: string) => string;
 }) => {
   const publicUrl = tenantSlug
     ? `/public/${tenantSlug}${page.slug === 'home' ? '' : '/' + page.slug}`
     : null;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: i * 0.05 }}
+    <div
       className="group bg-white rounded-[2rem] border border-slate-100 p-6 shadow-[0_8px_30px_rgb(0,0,0,0.02)] hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300 flex flex-col h-full relative overflow-hidden"
     >
       {/* Page Header */}
@@ -100,7 +93,7 @@ const PageCard = React.memo(({
         <div className="flex items-center gap-2 mb-1">
             <h3 className="text-lg font-black text-slate-900 truncate tracking-tight">{page.title}</h3>
             {page.isHomePage && (
-                <span className="bg-emerald-100 text-emerald-700 text-[10px] font-black uppercase px-2 py-0.5 rounded-full tracking-widest">Home</span>
+                <span className="bg-emerald-100 text-emerald-700 text-[10px] font-black uppercase px-2 py-0.5 rounded-full tracking-widest">{t('websiteBuilder.home')}</span>
             )}
         </div>
         <p className="text-slate-400 text-sm font-bold flex items-center gap-1.5 mb-6">
@@ -117,13 +110,13 @@ const PageCard = React.memo(({
                     : 'bg-white text-slate-400 border-slate-100 hover:border-slate-200'
                 }`}
             >
-                {page.isPublished ? 'Published' : 'Draft'}
+                {page.isPublished ? t('websiteBuilder.published') : t('websiteBuilder.draft')}
             </button>
             {!page.isHomePage && page.isPublished && (
                 <button
                     onClick={() => onSetHome(page.id!)}
                     className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 text-slate-400 hover:text-amber-500 hover:bg-amber-50 border border-transparent hover:border-amber-100 transition-all font-bold"
-                    title="Set as Homepage"
+                    title={t('websiteBuilder.setHomepage')}
                 >
                     <Star className="w-4 h-4" />
                 </button>
@@ -138,15 +131,16 @@ const PageCard = React.memo(({
         className="w-full py-4 bg-slate-900 group-hover:bg-emerald-600 text-white rounded-2xl font-black text-sm text-center transition-all flex items-center justify-center gap-2 shadow-lg shadow-slate-900/10 group-hover:shadow-emerald-600/20"
       >
         <Edit2 className="w-4 h-4" />
-        Open Site Editor
+        {t('websiteBuilder.openSiteEditor')}
       </Link>
-    </motion.div>
+    </div>
   );
 });
 
 PageCard.displayName = 'PageCard';
 
 export default function WebsiteBuilderPage() {
+  const { t, direction } = useTranslation();
   const queryClient = useQueryClient();
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [tenantSlug, setTenantSlug] = useState('');
@@ -214,9 +208,9 @@ export default function WebsiteBuilderPage() {
     mutationFn: (id: string) => cmsService.deletePage(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cms-pages'] });
-      showToast('Page deleted successfully');
+      showToast(t('websiteBuilder.pageDeleted'));
     },
-    onError: () => showToast('Failed to delete page', 'error'),
+    onError: () => showToast(t('websiteBuilder.deleteFailed'), 'error'),
   });
 
   const togglePublishMutation = useMutation({
@@ -224,25 +218,25 @@ export default function WebsiteBuilderPage() {
       cmsService.updatePage(id, { isPublished } as Partial<Page>),
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ['cms-pages'] });
-      showToast(vars.isPublished ? 'Page published successfully' : 'Page unpublished');
+      showToast(vars.isPublished ? t('websiteBuilder.pagePublished') : t('websiteBuilder.pageUnpublished'));
     },
-    onError: () => showToast('Failed to update page status', 'error'),
+    onError: () => showToast(t('websiteBuilder.statusFailed'), 'error'),
   });
 
   const bootstrapMutation = useMutation({
     mutationFn: () => cmsService.bootstrapWebsite(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cms-pages'] });
-      showToast('Website bootstrapped with 9 default pages!');
+      showToast(t('websiteBuilder.bootstrapSuccess'));
     },
-    onError: () => showToast('Bootstrap failed', 'error'),
+    onError: () => showToast(t('websiteBuilder.bootstrapFailed'), 'error'),
   });
 
   const setHomePageMutation = useMutation({
     mutationFn: (id: string) => cmsService.updatePage(id, { isHomePage: true } as Partial<Page>),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cms-pages'] });
-      showToast('Homepage updated!');
+      showToast(t('websiteBuilder.homepageUpdated'));
     },
   });
 
@@ -251,9 +245,9 @@ export default function WebsiteBuilderPage() {
       cmsService.createPage({ ...data, isPublished: false }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cms-pages'] });
-      showToast('New page created!');
+      showToast(t('websiteBuilder.newPageCreated'));
     },
-    onError: (err: any) => showToast(err?.message || 'Failed to create page', 'error'),
+    onError: (err: any) => showToast(err?.message || t('websiteBuilder.createPageFailed'), 'error'),
   });
 
   const pages = useMemo(() => data?.data?.pages || [], [data?.data?.pages]);
@@ -275,28 +269,26 @@ export default function WebsiteBuilderPage() {
   }, [pages.length]);
 
   const handleCreatePage = () => {
-    const title = window.prompt('Enter page title:');
+    const title = window.prompt(t('websiteBuilder.pageTitlePrompt'));
     if (!title) return;
-    const slug = window.prompt('Enter page slug:', title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''));
+    const slug = window.prompt(t('websiteBuilder.pageSlugPrompt'), title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''));
     if (!slug) return;
     createPageMutation.mutate({ title, slug });
   };
 
   return (
-    <div className="space-y-10">
-      <AnimatePresence>
-        {toast && <Toast message={toast.message} type={toast.type} />}
-      </AnimatePresence>
+    <div className="space-y-10" dir={direction}>
+      {toast && <Toast message={toast.message} type={toast.type} />}
 
       {/* Header Area */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
            <div className="flex items-center gap-2 mb-2">
             <Layout className="w-5 h-5 text-emerald-600 fill-emerald-600/10" />
-            <span className="text-xs font-black text-emerald-600 uppercase tracking-[0.2em]">Cms Engine</span>
+            <span className="text-xs font-black text-emerald-600 uppercase tracking-[0.2em]">{t('websiteBuilder.cmsEngine')}</span>
           </div>
-          <h1 className="text-4xl font-black text-slate-900 tracking-tight">Website Builder</h1>
-          <p className="text-slate-500 font-medium text-lg mt-1">Design and publish your institutional pages.</p>
+          <h1 className="text-4xl font-black text-slate-900 tracking-tight">{t('websiteBuilder.title')}</h1>
+          <p className="text-slate-500 font-medium text-lg mt-1">{t('websiteBuilder.subtitle')}</p>
         </div>
         <div className="flex flex-wrap gap-3">
           <button
@@ -304,13 +296,13 @@ export default function WebsiteBuilderPage() {
               if (tenantSlug) {
                 window.open(`/public/${tenantSlug}`, '_blank');
               } else {
-                showToast('Tenant slug not found. Please try again.', 'error');
+                showToast(t('websiteBuilder.tenantSlugMissing'), 'error');
               }
             }}
             className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3.5 bg-slate-900 text-white rounded-2xl hover:bg-black transition-all font-bold shadow-lg"
           >
             <Eye className="w-5 h-5" />
-            View Live Site
+            {t('websiteBuilder.viewLiveSite')}
           </button>
           <Link
             href="/dashboard/website-builder/settings"
@@ -318,7 +310,7 @@ export default function WebsiteBuilderPage() {
             className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3.5 bg-white border border-slate-200 text-slate-600 rounded-2xl hover:bg-slate-50 transition-all font-bold shadow-sm"
           >
             <Settings className="w-5 h-5" />
-            Site Settings
+            {t('websiteBuilder.siteSettings')}
           </Link>
           <button
             onClick={handleCreatePage}
@@ -326,7 +318,7 @@ export default function WebsiteBuilderPage() {
             className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3.5 bg-emerald-600 text-white rounded-2xl hover:bg-emerald-700 transition-all font-bold shadow-xl shadow-emerald-100"
           >
             <Plus className="w-5 h-5" />
-            New Page
+            {t('websiteBuilder.newPage')}
           </button>
         </div>
 
@@ -340,23 +332,19 @@ export default function WebsiteBuilderPage() {
             ))}
         </div>
       ) : pages.length === 0 ? (
-        <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-[3rem] border border-slate-100 p-20 text-center shadow-sm"
-        >
+        <div className="bg-white rounded-[3rem] border border-slate-100 p-20 text-center shadow-sm">
           <div className="flex flex-col items-center gap-6">
             <div className="w-24 h-24 bg-emerald-50 rounded-[2.5rem] flex items-center justify-center text-emerald-600 ring-8 ring-emerald-50/50">
               <Globe className="w-10 h-10" />
             </div>
             <div className="max-w-md mx-auto">
-              <h2 className="text-2xl font-black text-slate-900 mb-2">No Pages Found</h2>
+              <h2 className="text-2xl font-black text-slate-900 mb-2">{t('websiteBuilder.noPagesFound')}</h2>
               <p className="text-slate-500 font-medium mb-10 leading-relaxed">
-                Start your online presence by creating individual pages or bootstrap your entire site with our 9-page standard template.
+                {t('websiteBuilder.noPagesSubtitle')}
               </p>
               <button
                 onClick={() => {
-                  if (confirm('This will generate 9 default pages (Home, About, Courses, Admission, Contact, Donation, Events, Results, Gallery). Continue?')) {
+                  if (confirm(t('websiteBuilder.bootstrapConfirm'))) {
                     bootstrapMutation.mutate();
                   }
                 }}
@@ -364,11 +352,11 @@ export default function WebsiteBuilderPage() {
                 className="flex items-center gap-3 px-8 py-4 bg-slate-900 text-white rounded-[1.5rem] hover:bg-black transition-all font-black text-lg mx-auto shadow-2xl shadow-slate-200 active:scale-95 disabled:opacity-50"
               >
                 {bootstrapMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-6 h-6 text-amber-400" />}
-                {bootstrapMutation.isPending ? 'Bootstrapping Site...' : 'Bootstrap Site (9 Pages)'}
+                {bootstrapMutation.isPending ? t('websiteBuilder.bootstrapping') : t('websiteBuilder.bootstrapButton')}
               </button>
             </div>
           </div>
-        </motion.div>
+        </div>
       ) : (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-8">
@@ -378,17 +366,18 @@ export default function WebsiteBuilderPage() {
                   page={page}
                   tenantSlug={tenantSlug}
                   onDelete={(id) => {
-                      if (confirm(`Delete "${page.title}"? This cannot be undone.`)) {
+                      if (confirm(t('websiteBuilder.deleteConfirm').replace('{title}', page.title))) {
                           deleteMutation.mutate(id);
                       }
                   }}
                   onTogglePublish={(id, status) => togglePublishMutation.mutate({ id, isPublished: status })}
                   onSetHome={(id) => {
-                      if (confirm('Set this page as the main homepage?')) {
+                      if (confirm(t('websiteBuilder.setHomeConfirm'))) {
                           setHomePageMutation.mutate(id);
                       }
                   }}
                   i={i}
+                  t={t}
               />
             ))}
           </div>
@@ -401,7 +390,7 @@ export default function WebsiteBuilderPage() {
                 disabled={currentPage === 1}
                 className="px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-bold text-sm"
               >
-                Previous
+                {t('websiteBuilder.previous')}
               </button>
               {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
                 <button
@@ -421,7 +410,7 @@ export default function WebsiteBuilderPage() {
                 disabled={currentPage === totalPages}
                 className="px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-bold text-sm"
               >
-                Next
+                {t('websiteBuilder.next')}
               </button>
             </div>
           )}

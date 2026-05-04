@@ -23,14 +23,14 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@lib/api';
 import { logout } from '@services/auth.service';
 import { useState, useEffect, useCallback } from 'react';
-
-// Prevent prerendering during build to avoid QueryClient errors
-export const dynamic = 'force-dynamic';
+import { useTranslation } from '@/lib/i18n/useTranslation';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 export default function TenantDashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const queryClient = useQueryClient();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { t, direction } = useTranslation();
 
   // Close mobile menu when path changes
   useEffect(() => {
@@ -50,7 +50,7 @@ export default function TenantDashboardLayout({ children }: { children: React.Re
     queryClient.prefetchQuery({
       queryKey: ['onboarding'],
       queryFn: async () => {
-        const res = await api.get('/onboarding/status');
+        const res = await api.get('/tenant/onboarding');
         return res.data.data;
       },
     });
@@ -61,19 +61,19 @@ export default function TenantDashboardLayout({ children }: { children: React.Re
     queryClient.prefetchQuery({
       queryKey: ['cms-pages'],
       queryFn: async () => {
-        const res = await api.get('/cms/pages');
+        const res = await api.get('/tenant/cms/pages');
         return res.data.data;
       },
     });
   }, [queryClient]);
 
   const navItems = [
-    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-    { name: 'Website Builder', href: '/dashboard/website-builder', icon: Globe },
-    { name: 'Leads', href: '/dashboard/leads', icon: MessageSquare },
-    { name: 'Branches', href: '/dashboard/branches', icon: MapPin },
-    { name: 'Sessions', href: '/dashboard/sessions', icon: Calendar },
-    { name: 'Settings', href: '/dashboard/settings', icon: Settings },
+    { key: 'sidebar.dashboard', href: '/dashboard', icon: LayoutDashboard },
+    { key: 'sidebar.websiteBuilder', href: '/dashboard/website-builder', icon: Globe },
+    { key: 'sidebar.leads', href: '/dashboard/leads', icon: MessageSquare },
+    { key: 'sidebar.branches', href: '/dashboard/branches', icon: MapPin },
+    { key: 'sidebar.sessions', href: '/dashboard/sessions', icon: Calendar },
+    { key: 'sidebar.settings', href: '/dashboard/settings', icon: Settings },
   ];
 
   const SidebarContent = () => (
@@ -101,7 +101,7 @@ export default function TenantDashboardLayout({ children }: { children: React.Re
             <h1 className="font-black text-slate-900 leading-tight truncate text-lg tracking-tight">
               {tenant?.displayName || 'IdaraSys'}
             </h1>
-            <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.15em] mt-0.5">Admin Portal</p>
+            <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.15em] mt-0.5">{t('sidebar.adminPortal')}</p>
           </div>
         </Link>
       </div>
@@ -115,7 +115,7 @@ export default function TenantDashboardLayout({ children }: { children: React.Re
                                  undefined;
           return (
             <div
-              key={item.name}
+              key={item.key}
               className="animate-slide-in-left"
               style={{ animationDelay: `${i * 50}ms` }}
             >
@@ -130,7 +130,7 @@ export default function TenantDashboardLayout({ children }: { children: React.Re
                 }`}
               >
                 <item.icon className={`w-5 h-5 transition-colors ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-slate-600'}`} />
-                {item.name}
+                {t(item.key)}
               </Link>
             </div>
           );
@@ -146,7 +146,7 @@ export default function TenantDashboardLayout({ children }: { children: React.Re
            <div className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center group-hover:bg-white border border-transparent group-hover:border-slate-200 transition-all">
               <HelpCircle className="w-4.5 h-4.5 text-slate-400 group-hover:text-slate-600" />
            </div>
-           Help Center
+           {t('sidebar.helpCenter')}
          </Link>
          <button 
            onClick={logout}
@@ -155,14 +155,14 @@ export default function TenantDashboardLayout({ children }: { children: React.Re
            <div className="w-8 h-8 rounded-xl bg-rose-50 flex items-center justify-center group-hover:bg-white border border-transparent group-hover:border-rose-100 transition-all">
               <LogOut className="w-4.5 h-4.5" />
            </div>
-           Quit Session
+           {t('sidebar.quitSession')}
          </button>
       </div>
     </>
   );
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] flex overflow-hidden relative">
+    <div className="min-h-screen bg-[#f8fafc] flex overflow-hidden relative" dir={direction}>
       {/* Desktop Sidebar */}
       <aside className="w-72 bg-white border-r border-slate-200/60 hidden lg:flex flex-col sticky top-0 h-screen z-30 shadow-[4px_0_24px_rgba(0,0,0,0.02)]">
         <SidebarContent />
@@ -176,9 +176,9 @@ export default function TenantDashboardLayout({ children }: { children: React.Re
               onClick={() => setIsMobileMenuOpen(false)}
             />
             <aside 
-              className="fixed top-0 left-0 bottom-0 w-[280px] bg-white z-[50] lg:hidden flex flex-col shadow-2xl animate-slide-in-left"
+              className={`fixed top-0 ${direction === 'rtl' ? 'right-0' : 'left-0'} bottom-0 w-[280px] bg-white z-[50] lg:hidden flex flex-col shadow-2xl animate-slide-in-left`}
             >
-              <div className="absolute top-6 right-[-12px] lg:hidden">
+              <div className={`absolute top-6 ${direction === 'rtl' ? 'left-[-12px]' : 'right-[-12px]'} lg:hidden`}>
                 <button 
                   onClick={() => setIsMobileMenuOpen(false)}
                   className="w-8 h-8 bg-slate-900 text-white rounded-full flex items-center justify-center shadow-lg"
@@ -205,25 +205,26 @@ export default function TenantDashboardLayout({ children }: { children: React.Re
             </button>
 
             <div className="relative w-full max-w-[200px] md:max-w-md group hidden sm:block">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
+                <Search className={`absolute ${direction === 'rtl' ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-400 group-focus-within:text-emerald-500 transition-colors`} />
                 <input 
                     type="text" 
-                    placeholder="Quick search..." 
-                    className="w-full bg-slate-100/50 border-transparent rounded-2xl py-2 md:py-2.5 pl-10 md:pl-12 pr-4 text-sm font-medium focus:bg-white focus:ring-4 focus:ring-emerald-500/5 focus:border-emerald-500/20 transition-all outline-none"
+                    placeholder={t('common.quickSearch')} 
+                    className={`w-full bg-slate-100/50 border-transparent rounded-2xl py-2 md:py-2.5 ${direction === 'rtl' ? 'pr-10 md:pr-12 pl-4' : 'pl-10 md:pl-12 pr-4'} text-sm font-medium focus:bg-white focus:ring-4 focus:ring-emerald-500/5 focus:border-emerald-500/20 transition-all outline-none`}
                 />
             </div>
           </div>
 
           <div className="flex items-center gap-2 md:gap-4">
+             <LanguageSwitcher />
              <button className="relative w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition-all">
                 <Bell className="w-5 h-5" />
                 <span className="absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full border-2 border-white" />
              </button>
              <div className="h-8 w-[1px] bg-slate-200 mx-1 md:mx-2" />
              <div className="flex items-center gap-2 md:gap-3 pl-1 md:pl-2">
-                <div className="text-right hidden md:block">
-                    <p className="text-sm font-black text-slate-900 leading-none">Admin User</p>
-                    <p className="text-[11px] font-bold text-emerald-600 mt-1 uppercase tracking-wide">Standard Plan</p>
+                <div className={`${direction === 'rtl' ? 'text-left' : 'text-right'} hidden md:block`}>
+                    <p className="text-sm font-black text-slate-900 leading-none">{t('header.adminUser')}</p>
+                    <p className="text-[11px] font-bold text-emerald-600 mt-1 uppercase tracking-wide">{t('header.standardPlan')}</p>
                 </div>
                 <div className="w-9 h-9 md:w-10 md:h-10 rounded-xl bg-slate-200 border border-slate-300 overflow-hidden shadow-inner">
                     <Image

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -40,11 +40,15 @@ export default function RegisterPage() {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [error, setError] = useState<string | null>(null);
+  const [isSlugManuallyEdited, setIsSlugManuallyEdited] = useState(false);
 
-  const { register, handleSubmit, watch, formState: { errors }, trigger } = useForm<FormValues>({
+  const { register, handleSubmit, watch, setValue, formState: { errors }, trigger } = useForm<FormValues>({
     resolver: zodResolver(schema as any),
     mode: 'onSubmit',
     defaultValues: {
+      displayName: '',
+      slug: '',
+      institutionType: 'OTHER',
       adminUser: {
         fullName: '',
         email: '',
@@ -64,6 +68,22 @@ export default function RegisterPage() {
   });
 
   const displayName = watch('displayName');
+  const slug = watch('slug');
+
+  const toSlug = (value: string) =>
+    value
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-+|-+$/g, '');
+
+  useEffect(() => {
+    if (isSlugManuallyEdited) return;
+    const nextSlug = toSlug(displayName || '');
+    setValue('slug', nextSlug, { shouldValidate: false, shouldDirty: true });
+  }, [displayName, isSlugManuallyEdited, setValue]);
 
   return (
     <motion.div
@@ -119,7 +139,13 @@ export default function RegisterPage() {
 
                 <FormField label="Institution Name" error={errors.displayName?.message}>
                   <input
-                    {...register('displayName')}
+                    {...register('displayName', {
+                      onChange: (e) => {
+                        if (isSlugManuallyEdited) return;
+                        const nextSlug = toSlug(e.target.value || '');
+                        setValue('slug', nextSlug, { shouldValidate: false, shouldDirty: true });
+                      },
+                    })}
                     className={`w-full bg-gray-50 border-2 border-gray-100 rounded-2xl py-3.5 px-4 text-gray-900 placeholder-gray-400 focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all outline-none text-sm font-medium ${errors.displayName ? 'border-red-500 bg-red-50' : ''}`}
                     placeholder="e.g. Madarsa Darul Uloom"
                   />
@@ -131,12 +157,21 @@ export default function RegisterPage() {
                       <Globe className="h-4 w-4" />
                     </div>
                     <input
-                      {...register('slug')}
+                      {...register('slug', {
+                        onChange: (e) => {
+                          const normalized = toSlug(e.target.value || '');
+                          setValue('slug', normalized, { shouldValidate: true, shouldDirty: true });
+                          setIsSlugManuallyEdited(true);
+                        },
+                      })}
                       className={`w-full bg-gray-50 border-2 border-gray-100 rounded-2xl py-3.5 pl-10 pr-4 text-gray-900 placeholder-gray-400 focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all outline-none text-sm font-medium ${errors.slug ? 'border-red-500 bg-red-50' : ''}`}
                       placeholder="darul-uloom"
                     />
                   </div>
                 </FormField>
+                {slug && (
+                  <p className="text-[11px] font-bold text-gray-400 -mt-3">Preview: /public/{slug}</p>
+                )}
 
                 <FormField label="Institution Type" error={errors.institutionType?.message}>
                   <select
@@ -156,9 +191,15 @@ export default function RegisterPage() {
                 <button
                   type="button"
                   onClick={async () => {
-                    const isValid = await trigger(['displayName', 'slug', 'institutionType']);
-                    if (isValid) {
-                      setStep(2);
+                    try {
+                      const safeSlug = toSlug(slug || '');
+                      setValue('slug', safeSlug, { shouldValidate: true, shouldDirty: true });
+                      const isValid = await trigger(['displayName', 'slug', 'institutionType']);
+                      if (isValid) {
+                        setStep(2);
+                      }
+                    } catch {
+                      setError('Please enter a valid institution name and slug.');
                     }
                   }}
                   className="w-full flex justify-center items-center gap-2 py-4 px-6 border border-transparent rounded-2xl shadow-lg shadow-emerald-600/20 text-base font-black text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-500/40 transition-all active:scale-[0.98] group"

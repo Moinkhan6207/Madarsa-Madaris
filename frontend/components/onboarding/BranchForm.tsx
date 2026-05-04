@@ -70,11 +70,7 @@ export function BranchForm() {
     enabled: isMounted,
   });
 
-  const branches = Array.isArray(branchesData)
-    ? branchesData
-    : Array.isArray((branchesData as any)?.data)
-      ? (branchesData as any).data
-      : [];
+  const branches = branchesData ?? [];
   const hasPrimary = branches.some((b) => b.isPrimary);
 
   const { register, handleSubmit, reset, watch, getValues, setError, clearErrors, setValue, trigger, formState: { errors } } = useForm<FormValues>({

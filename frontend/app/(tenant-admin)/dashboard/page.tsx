@@ -7,6 +7,7 @@ import { getOnboardingStatus } from '@services/onboarding.service';
 import { Users, School, MapPin, Calendar, TrendingUp, LayoutDashboard, ArrowRight, ArrowUpRight, Sparkles, Plus, ChevronRight, CheckCircle, Settings } from 'lucide-react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 
 // Prevent prerendering during build to avoid QueryClient errors
 export const dynamic = 'force-dynamic';
@@ -54,6 +55,7 @@ const StatCard = React.memo(({ label, value, icon: Icon, color, trend, i }: { la
 StatCard.displayName = 'StatCard';
 
 export default function TenantDashboard() {
+  const { t, direction } = useTranslation();
   const { data: tenant, isLoading: tenantLoading } = useQuery({
     queryKey: ['tenant-me'],
     queryFn: async () => {
@@ -126,41 +128,41 @@ export default function TenantDashboard() {
   }
 
   const statsData = [
-    { label: 'Total Students', value: stats?.totalStudents || '-', icon: Users, color: 'blue' },
-    { label: 'Total Teachers', value: stats?.totalTeachers || '-', icon: School, color: 'purple' },
-    { label: 'Active Branches', value: stats?.totalBranches || tenant?.branchCount || '-', icon: MapPin, color: 'emerald' },
-    { label: 'Total Pages', value: stats?.totalPages || '-', icon: Calendar, color: 'amber' },
+    { label: t('dashboard.totalStudents'), value: stats?.totalStudents || '-', icon: Users, color: 'blue' },
+    { label: t('dashboard.totalTeachers'), value: stats?.totalTeachers || '-', icon: School, color: 'purple' },
+    { label: t('dashboard.activeBranches'), value: stats?.totalBranches || tenant?.branchCount || '-', icon: MapPin, color: 'emerald' },
+    { label: t('dashboard.totalPages'), value: stats?.totalPages || '-', icon: Calendar, color: 'amber' },
   ];
 
   return (
     <>
       <AnimationStyles />
-      <div className="space-y-10">
+      <div className="space-y-10" dir={direction}>
         {/* Welcome Header */}
         <header 
           className="flex items-end justify-between animate-fade-in-left"
         >
-        <div>
+        <div className={direction === 'rtl' ? 'text-right' : 'text-left'}>
           <div className="flex items-center gap-2 mb-2">
             <Sparkles className="w-5 h-5 text-amber-500 fill-amber-500" />
-            <span className="text-xs font-black text-amber-600 uppercase tracking-[0.2em]">Live Overview</span>
+            <span className="text-xs font-black text-amber-600 uppercase tracking-[0.2em]">{t('dashboard.liveOverview')}</span>
           </div>
           <h1 className="text-4xl font-black text-slate-900 tracking-tight">
-            Assalamu Alaikum, <span className="text-emerald-600">{tenant?.displayName}</span>
+            {t('dashboard.greeting')}, <span className="text-emerald-600">{tenant?.displayName}</span>
           </h1>
           <p className="text-slate-500 font-medium mt-2 text-lg">
-            Manage your daily operations and track institutional progress.
+            {t('dashboard.manageSubtitle')}
           </p>
         </div>
         
         <div className="hidden sm:flex items-center gap-3">
             <button className="flex items-center gap-2 px-6 py-3.5 bg-white border border-slate-200 rounded-2xl font-bold text-slate-600 hover:bg-slate-50 transition-all shadow-sm">
                 <Calendar className="w-4.5 h-4.5" />
-                View Schedule
+                {t('dashboard.viewSchedule')}
             </button>
             <button className="flex items-center gap-2 px-6 py-3.5 bg-slate-900 text-white rounded-2xl font-bold hover:bg-black transition-all shadow-xl shadow-slate-200">
                 <Plus className="w-4.5 h-4.5" />
-                New Entry
+                {t('dashboard.newEntry')}
             </button>
         </div>
       </header>
@@ -180,11 +182,11 @@ export default function TenantDashboard() {
         >
           <div className="bg-white rounded-[2rem] p-10 shadow-[0_8px_30px_rgb(0,0,0,0.02)] border border-slate-100">
             <div className="flex items-center justify-between mb-8">
-                <div>
-                    <h3 className="text-xl font-black text-slate-900 tracking-tight">Recent Activity</h3>
-                    <p className="text-sm text-slate-400 font-medium">Detailed tracking of recent system events.</p>
+                <div className={direction === 'rtl' ? 'text-right' : 'text-left'}>
+                    <h3 className="text-xl font-black text-slate-900 tracking-tight">{t('dashboard.recentActivity')}</h3>
+                    <p className="text-sm text-slate-400 font-medium">{t('dashboard.recentActivitySubtitle')}</p>
                 </div>
-                <button className="text-emerald-600 font-bold text-sm hover:underline">View All</button>
+                <button className="text-emerald-600 font-bold text-sm hover:underline">{t('common.viewAll')}</button>
             </div>
             
             <div className="space-y-6">
@@ -194,12 +196,12 @@ export default function TenantDashboard() {
                             0{i+1}
                         </div>
                         <div className="flex-1">
-                            <h4 className="font-bold text-slate-900 group-hover:text-emerald-600 transition-colors">Student Admission Processed</h4>
-                            <p className="text-sm text-slate-500 font-medium">New student record added to Branch #1</p>
+                            <h4 className="font-bold text-slate-900 group-hover:text-emerald-600 transition-colors">{t('dashboard.studentAdmissionProcessed')}</h4>
+                            <p className="text-sm text-slate-500 font-medium">{t('dashboard.newStudentRecord')}</p>
                         </div>
                         <div className="text-right">
-                            <span className="text-xs font-bold text-slate-400 block uppercase tracking-wider">2m ago</span>
-                            <span className="text-[10px] font-black text-emerald-600 mt-1 uppercase tracking-widest bg-emerald-50 px-2 py-0.5 rounded-full">Success</span>
+                            <span className="text-xs font-bold text-slate-400 block uppercase tracking-wider">{t('dashboard.minutesAgo')}</span>
+                            <span className="text-[10px] font-black text-emerald-600 mt-1 uppercase tracking-widest bg-emerald-50 px-2 py-0.5 rounded-full">{t('common.success')}</span>
                         </div>
                     </div>
                 ))}
@@ -217,15 +219,15 @@ export default function TenantDashboard() {
                 <Sparkles size={120} />
             </div>
             
-            <h3 className="text-xl font-black mb-2 tracking-tight relative z-10">Quick Actions</h3>
-            <p className="text-slate-400 text-sm mb-8 font-medium relative z-10">Common tasks at your fingertips.</p>
+            <h3 className="text-xl font-black mb-2 tracking-tight relative z-10">{t('dashboard.quickActions')}</h3>
+            <p className="text-slate-400 text-sm mb-8 font-medium relative z-10">{t('dashboard.quickActionsSubtitle')}</p>
             
             <div className="space-y-4 relative z-10">
                {[
-                 { label: 'Add New Student', icon: Plus, bg: 'bg-emerald-500 hover:bg-emerald-400' },
-                 { label: 'Mark Attendance', icon: CheckCircle, bg: 'bg-indigo-500 hover:bg-indigo-400' },
-                 { label: 'Manage Sessions', icon: Calendar, bg: 'bg-slate-800 hover:bg-slate-700' },
-                 { label: 'Institution Config', icon: Settings, bg: 'bg-slate-800 hover:bg-slate-700' }
+                 { label: t('dashboard.addNewStudent'), icon: Plus, bg: 'bg-emerald-500 hover:bg-emerald-400' },
+                 { label: t('dashboard.markAttendance'), icon: CheckCircle, bg: 'bg-indigo-500 hover:bg-indigo-400' },
+                 { label: t('dashboard.manageSessions'), icon: Calendar, bg: 'bg-slate-800 hover:bg-slate-700' },
+                 { label: t('dashboard.institutionConfig'), icon: Settings, bg: 'bg-slate-800 hover:bg-slate-700' }
                ].map((action) => (
                  <button 
                     key={action.label}

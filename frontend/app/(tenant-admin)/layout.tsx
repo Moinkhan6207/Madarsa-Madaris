@@ -7,9 +7,6 @@ import { useState, useEffect, startTransition } from 'react';
 import { Loader2 } from 'lucide-react';
 import { TenantStatus } from '@/types/tenant';
 
-// Prevent prerendering during build to avoid QueryClient errors
-export const dynamic = 'force-dynamic';
-
 function clearAuthState() {
   if (typeof window === 'undefined') return;
 
@@ -21,6 +18,10 @@ function clearAuthState() {
 }
 
 export default function TenantAdminLayout({ children }: { children: React.ReactNode }) {
+  return <TenantAdminLayoutInner>{children}</TenantAdminLayoutInner>;
+}
+
+function TenantAdminLayoutInner({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [isMounted, setIsMounted] = useState(false);
@@ -87,19 +88,19 @@ export default function TenantAdminLayout({ children }: { children: React.ReactN
     }
   }, [tenant, hasToken, isLoading, isError, pathname, router]);
 
+  const userRole = typeof window !== 'undefined' ? localStorage.getItem('user_role') : null;
+  const isSuperAdmin = userRole === 'SUPER_ADMIN';
+
+  let content: React.ReactNode = children;
+
   if (!isMounted || !hasToken || isLoading) {
-    return (
+    content = (
       <div className="flex h-screen items-center justify-center bg-gray-50">
         <Loader2 className="w-12 h-12 animate-spin text-emerald-600" />
       </div>
     );
-  }
-
-  const userRole = typeof window !== 'undefined' ? localStorage.getItem('user_role') : null;
-  const isSuperAdmin = userRole === 'SUPER_ADMIN';
-
-  if (isError && !isSuperAdmin) {
-    return (
+  } else if (isError && !isSuperAdmin) {
+    content = (
       <div className="flex h-screen flex-col items-center justify-center gap-4 text-center">
         <h2 className="text-xl font-bold text-red-600">Failed to load tenant context</h2>
         <p className="text-gray-500 text-sm">Please try logging in again.</p>
@@ -116,5 +117,5 @@ export default function TenantAdminLayout({ children }: { children: React.ReactN
     );
   }
 
-  return <>{children}</>;
+  return <>{content}</>;
 }

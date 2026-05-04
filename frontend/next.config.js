@@ -27,7 +27,6 @@ const nextConfig = {
   experimental: {
     optimizePackageImports: [
       'lucide-react',
-      'framer-motion',
     ],
   },
 
@@ -84,39 +83,6 @@ const nextConfig = {
     ];
   },
 
-  // Webpack optimizations
-  webpack: (config, { dev, isServer }) => {
-    // Optimize bundle size
-    if (!dev && !isServer) {
-      config.optimization = {
-        ...config.optimization,
-        splitChunks: {
-          chunks: 'all',
-          cacheGroups: {
-            vendor: {
-              test: /[\\/]node_modules[\\/]/,
-              name: 'vendors',
-              chunks: 'all',
-              priority: 10,
-            },
-            framerMotion: {
-              test: /[\\/]node_modules[\\/]framer-motion[\\/]/,
-              name: 'framer-motion',
-              chunks: 'all',
-              priority: 20,
-            },
-            reactQuery: {
-              test: /[\\/]node_modules[\\/]@tanstack[\\/]/,
-              name: 'react-query',
-              chunks: 'all',
-              priority: 15,
-            },
-          },
-        },
-      };
-    }
-    return config;
-  },
 };
 
 module.exports = nextConfig;

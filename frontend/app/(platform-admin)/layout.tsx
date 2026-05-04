@@ -48,7 +48,7 @@ export default function PlatformAdminLayout({ children }: { children: React.Reac
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+      <div className="min-h-screen bg-gray-50 flex">
       {/* Sidebar */}
       <aside className="w-64 bg-white border-r border-gray-200 hidden md:flex flex-col">
         <div className="p-6">
@@ -101,6 +101,6 @@ export default function PlatformAdminLayout({ children }: { children: React.Reac
           {children}
         </div>
       </main>
-    </div>
+      </div>
   );
 }

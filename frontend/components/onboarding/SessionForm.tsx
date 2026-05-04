@@ -64,11 +64,7 @@ export function SessionForm() {
     enabled: isMounted,
   });
 
-  const sessions = Array.isArray(sessionsData)
-    ? sessionsData
-    : Array.isArray((sessionsData as any)?.data)
-      ? (sessionsData as any).data
-      : [];
+  const sessions = sessionsData ?? [];
   const hasActive = sessions.some((s) => s.isCurrent);
 
   const { register, handleSubmit, reset, watch, getValues, trigger, formState: { errors } } = useForm<FormValues>({

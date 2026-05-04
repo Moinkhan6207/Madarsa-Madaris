@@ -7,7 +7,7 @@ import Image from 'next/image';
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-white flex overflow-hidden">
+      <div className="min-h-screen bg-white flex overflow-hidden">
       {/* Left Side: Illustration & Branding (Hidden on mobile) */}
       <div className="hidden lg:flex lg:w-1/2 relative bg-emerald-950 items-center justify-center overflow-hidden">
         {/* Background Image - Optimized */}
@@ -129,6 +129,6 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           opacity: 0;
         }
       `}</style>
-    </div>
+      </div>
   );
 }
