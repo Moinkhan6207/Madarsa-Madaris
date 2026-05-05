@@ -2,6 +2,7 @@ import React from 'react';
 import { Suspense } from 'react';
 import Navbar from '@/components/cms/Navbar';
 import Footer from '@/components/cms/Footer';
+import { getApiBaseUrl } from '@/lib/api-config';
 
 // Cache duration - 5 minutes in production, no cache in development
 const REVALIDATE_SECONDS = process.env.NODE_ENV === 'production' ? 300 : 0;
@@ -17,7 +18,7 @@ async function getSharedData(tenantSlug: string) {
     return cached.data;
   }
 
-  const apiUrl = process.env.NEXT_PUBLIC_INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api/v1';
+  const apiUrl = getApiBaseUrl();
   
   try {
     // For the layout, we just need ANY page data to get the settings and navigation

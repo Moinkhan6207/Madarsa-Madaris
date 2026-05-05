@@ -7,6 +7,7 @@ import { getLanguageDirection, isLanguageCode } from '@/lib/i18n/config';
 export const metadata: Metadata = {
   title: 'Idara Management System',
   description: 'Multi-tenant SaaS platform for Madarsa/Idara management',
+  manifest: '/manifest.webmanifest',
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {

@@ -5,6 +5,11 @@ export function middleware(request: NextRequest) {
   const token = request.cookies.get('auth_token')?.value;
   const role = request.cookies.get('user_role')?.value;
   const { pathname } = request.nextUrl;
+  const isPwaAsset = /^\/(sw\.js|manifest\.webmanifest|workbox-.*\.js|fallback-.*\.js)$/.test(pathname);
+
+  if (isPwaAsset) {
+    return NextResponse.next();
+  }
 
   // 1. Define segments
   const isAuthRoute = pathname.startsWith('/login') || pathname.startsWith('/register');
@@ -42,7 +47,23 @@ export function middleware(request: NextRequest) {
   const isLocalhost = host.includes('localhost') || host.includes('127.0.0.1');
   const mainDomain = process.env.NEXT_PUBLIC_MAIN_DOMAIN || 'madarsa-saas.com';
   
-  const reservedPaths = ['login', 'register', 'dashboard', 'platform', 'api', 'public', 'setup', 'pending', '_next', 'favicon.ico', 'assets'];
+  const reservedPaths = [
+    'login',
+    'register',
+    'dashboard',
+    'platform',
+    'api',
+    'public',
+    'setup',
+    'pending',
+    '_next',
+    'favicon.ico',
+    'assets',
+    'offline',
+    'manifest.webmanifest',
+    'sw.js',
+    'workbox-9ed0f4f8.js',
+  ];
   const segments = pathname.split('/').filter(Boolean);
 
   // A. Access via Subdomain (e.g., idara.saas.com/path)
@@ -79,6 +100,6 @@ export const config = {
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      */
-    '/((?!api|_next/static|_next/image|favicon.ico|assets).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico|assets|manifest.webmanifest|sw.js|workbox-.*\\.js|fallback-.*\\.js).*)',
   ],
 };

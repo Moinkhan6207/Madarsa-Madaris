@@ -1,3 +1,56 @@
+const withPWA = require('next-pwa')({
+  dest: 'public',
+  register: true,
+  skipWaiting: true,
+  disable: process.env.NODE_ENV === 'development',
+  fallbacks: {
+    document: '/offline',
+  },
+  runtimeCaching: [
+    {
+      urlPattern: /^https?.*\.(?:js|css|woff2?|ttf|eot|svg|png|jpg|jpeg|gif|webp|avif|ico)$/i,
+      handler: 'CacheFirst',
+      options: {
+        cacheName: 'static-assets',
+        expiration: {
+          maxEntries: 256,
+          maxAgeSeconds: 60 * 60 * 24 * 30,
+        },
+      },
+    },
+    {
+      urlPattern: /^https?:\/\/.*\/api\/v1\/.*/i,
+      handler: 'NetworkFirst',
+      method: 'GET',
+      options: {
+        cacheName: 'api-cache',
+        networkTimeoutSeconds: 8,
+        cacheableResponse: {
+          statuses: [0, 200],
+        },
+        expiration: {
+          maxEntries: 200,
+          maxAgeSeconds: 60 * 60 * 24,
+        },
+      },
+    },
+    {
+      urlPattern: /^https?.*/,
+      handler: 'StaleWhileRevalidate',
+      options: {
+        cacheName: 'pages-cache',
+        matchOptions: {
+          ignoreSearch: false,
+        },
+        expiration: {
+          maxEntries: 128,
+          maxAgeSeconds: 60 * 60 * 24 * 7,
+        },
+      },
+    },
+  ],
+});
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Image optimization
@@ -85,4 +138,4 @@ const nextConfig = {
 
 };
 
-module.exports = nextConfig;
+module.exports = withPWA(nextConfig);

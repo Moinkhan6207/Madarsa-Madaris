@@ -5,6 +5,9 @@ import { useState } from 'react';
 import dynamic from 'next/dynamic';
 import WebVitalsReporter from '@/components/performance/WebVitalsReporter';
 import { LanguageProvider } from '@/lib/i18n/LanguageProvider';
+import OfflineBanner from '@/components/offline/OfflineBanner';
+import OfflineSyncProvider from '@/components/offline/OfflineSyncProvider';
+import ServiceWorkerRegister from '@/components/pwa/ServiceWorkerRegister';
 
 // Dynamically import devtools only in development with ssr disabled
 const ReactQueryDevtools = process.env.NODE_ENV === 'development'
@@ -40,11 +43,15 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <LanguageProvider>
-        <WebVitalsReporter />
-        {children}
-        {process.env.NODE_ENV === 'development' && <ReactQueryDevtools initialIsOpen={false} />}
-      </LanguageProvider>
+      <OfflineSyncProvider>
+        <LanguageProvider>
+          <ServiceWorkerRegister />
+          <OfflineBanner />
+          <WebVitalsReporter />
+          {children}
+          {process.env.NODE_ENV === 'development' && <ReactQueryDevtools initialIsOpen={false} />}
+        </LanguageProvider>
+      </OfflineSyncProvider>
     </QueryClientProvider>
   );
 }

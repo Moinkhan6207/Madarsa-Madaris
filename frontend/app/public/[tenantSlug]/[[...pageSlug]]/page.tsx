@@ -1,6 +1,7 @@
 import React from 'react';
 import { Metadata } from 'next';
 import PublicRenderer from '@/components/cms/PublicRenderer';
+import { getApiBaseUrl } from '@/lib/api-config';
 
 // Cache duration - 5 minutes in production
 const REVALIDATE_SECONDS = process.env.NODE_ENV === 'production' ? 300 : 0;
@@ -10,7 +11,7 @@ let metadataCache: Record<string, { data: any; timestamp: number }> = {};
 const METADATA_CACHE_TTL = 30000; // 30 seconds
 
 async function getPageData(tenantSlug: string, pageSlug: string) {
-  const apiUrl = process.env.NEXT_PUBLIC_INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api/v1';
+  const apiUrl = getApiBaseUrl();
   
   try {
     const res = await fetch(`${apiUrl}/public/website/${tenantSlug}/${pageSlug}`, { 
@@ -113,7 +114,22 @@ export default async function PublicPage({ params }: any) {
   }
 
   if (result?.error) {
-    throw new Error("Unable to load page content at this time.");
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white p-6">
+        <div className="text-center max-w-md">
+          <h1 className="text-3xl font-black text-gray-900 tracking-tight mb-4 uppercase">Service Temporarily Unavailable</h1>
+          <p className="text-gray-500 font-medium leading-relaxed">
+            We could not load this page right now. Please try again shortly.
+          </p>
+          <a
+            href={`/public/${tenantSlug}`}
+            className="inline-flex items-center gap-2 mt-10 px-10 py-5 bg-gray-900 text-white rounded-2xl font-black hover:bg-black transition-all shadow-2xl"
+          >
+            Return Home
+          </a>
+        </div>
+      </div>
+    );
   }
 
   const { settings, page, tenant, navigation } = result.data;

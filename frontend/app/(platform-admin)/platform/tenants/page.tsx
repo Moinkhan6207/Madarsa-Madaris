@@ -7,11 +7,12 @@ import { TenantStatus } from '@/types/tenant';
 import { StatusBadge } from '@components/platform/StatusBadge';
 import Image from 'next/image';
 import { Loader2, RefreshCcw, ShieldCheck, ShieldAlert, Ban, Eye, X } from 'lucide-react';
+import { getApiOrigin } from '@/lib/api-config';
 
 function TenantDetailsModal({ tenant, onClose }: { tenant: any; onClose: () => void }) {
   if (!tenant) return null;
 
-  const backendUrl = (process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL)?.replace('/api/v1', '') || 'http://localhost:5001';
+  const backendUrl = getApiOrigin();
   let rawLogo = tenant.branding?.logoUrl;
   if (rawLogo && !rawLogo.startsWith('http') && !rawLogo.startsWith('/')) {
     rawLogo = '/' + rawLogo;

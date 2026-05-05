@@ -1,7 +1,8 @@
 import { ApiErrorResponse, FrontendApiError } from '@/types/api-error';
 import { removeCookie } from '@/lib/cookies';
+import { getApiBaseUrl } from '@/lib/api-config';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api/v1';
+const API_BASE_URL = getApiBaseUrl();
 
 type RequestConfig = {
   headers?: Record<string, string>;
@@ -63,6 +64,19 @@ const handle401 = (error: FrontendApiError) => {
   }
 };
 
+const getCachedApiResponse = async <T>(url: string): Promise<T | null> => {
+  if (typeof window === 'undefined' || !('caches' in window)) return null;
+  const cache = await caches.open('api-cache');
+  const response = await cache.match(url);
+  if (!response) return null;
+
+  try {
+    return (await response.json()) as T;
+  } catch {
+    return null;
+  }
+};
+
 const request = async <T>(method: string, path: string, body?: any, inputConfig?: MaybeConfig): Promise<T> => {
   const config = normalizeConfig(inputConfig);
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
@@ -83,8 +97,10 @@ const request = async <T>(method: string, path: string, body?: any, inputConfig?
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), config?.timeout ?? 30000);
 
+  const requestUrl = buildUrl(path, config?.params);
+
   try {
-    const res = await fetch(buildUrl(path, config?.params), {
+    const res = await fetch(requestUrl, {
       method,
       headers,
       credentials: 'include',
@@ -100,6 +116,11 @@ const request = async <T>(method: string, path: string, body?: any, inputConfig?
 
     return (await res.json()) as T;
   } catch (error: any) {
+    if (method === 'GET') {
+      const cached = await getCachedApiResponse<T>(requestUrl);
+      if (cached) return cached;
+    }
+
     if (error instanceof FrontendApiError) throw error;
     if (error?.name === 'AbortError') {
       throw new FrontendApiError('Request timed out. Please try again.', 'TIMEOUT_ERROR', 0);

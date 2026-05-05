@@ -1,4 +1,5 @@
 import { apiClient } from '@/lib/api';
+import { enqueueOfflineRequest } from '@/lib/offline/offline-queue';
 
 export interface Lead {
   id: string;
@@ -26,6 +27,20 @@ export const leadService = {
     apiClient.patch<{ success: boolean; data: Lead }>(`/tenant/leads/${id}/status`, { status }),
 
   // Public lead capture
-  captureLead: (data: { tenantId: string; type: string; formData: any }) => 
-    apiClient.post<{ success: boolean; message: string }>('/public/leads', data),
+  captureLead: async (data: { tenantId: string; type: string; formData: any }) => {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      await enqueueOfflineRequest({
+        endpoint: '/public/leads',
+        method: 'POST',
+        body: data,
+      });
+
+      return {
+        success: true,
+        message: 'Saved offline. Will sync when online.',
+      };
+    }
+
+    return apiClient.post<{ success: boolean; message: string }>('/public/leads', data);
+  },
 };
