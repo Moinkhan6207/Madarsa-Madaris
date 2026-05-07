@@ -1,4 +1,5 @@
 import NodeCache from 'node-cache';
+import { env } from '../../config/env';
 import { logger } from '../logger/logger';
 
 // Multi-layer cache service with Redis support (optional) and memory fallback
@@ -16,11 +17,11 @@ class CacheService {
     });
 
     // Initialize Redis if REDIS_URL is available
-    if (process.env.REDIS_URL) {
+    if (env.REDIS_URL) {
       try {
         // Dynamic import to avoid requiring Redis if not used
         const Redis = require('ioredis');
-        this.redisClient = new Redis(process.env.REDIS_URL, {
+        this.redisClient = new Redis(env.REDIS_URL, {
           maxRetriesPerRequest: 3,
           retryStrategy: (times: number) => {
             if (times > 3) {

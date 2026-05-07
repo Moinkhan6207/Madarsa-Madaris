@@ -1,4 +1,5 @@
 import { Queue, Worker, Job } from 'bullmq';
+import { env } from '../../config/env';
 import { logger } from '../logger/logger';
 import { emailService } from '../email/email.service';
 
@@ -41,9 +42,9 @@ class QueueService {
 
   private initializeQueues() {
     // Initialize Redis connection if REDIS_URL is available
-    if (process.env.REDIS_URL) {
+    if (env.REDIS_URL) {
       const Redis = require('ioredis');
-      this.redisConnection = new Redis(process.env.REDIS_URL, {
+      this.redisConnection = new Redis(env.REDIS_URL, {
         maxRetriesPerRequest: 3,
         retryStrategy: (times: number) => {
           if (times > 3) {

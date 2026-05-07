@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { env } from './env';
 import { logger } from '../common/logger/logger';
 
 // =============================================================================
@@ -16,7 +17,7 @@ declare global {
 
 const createPrismaClient = (): PrismaClient => {
   // Optimize connection settings for performance
-  const dbUrl = process.env.DATABASE_URL || '';
+  const dbUrl = env.DATABASE_URL || '';
   const separator = dbUrl.includes('?') ? '&' : '?';
   // Optimized pool settings: pool_timeout=15 to wait briefly on cold start
   const optimizedUrl = `${dbUrl}${separator}pgbouncer=true&connection_limit=20&pool_timeout=15`;

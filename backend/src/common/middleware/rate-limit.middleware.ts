@@ -23,7 +23,7 @@ export const createRateLimiter = (options: RateLimitOptions) => {
       // Skip rate limiting for health checks
       if (req.path === '/api/health') return true;
       // Skip in development if rate limiting is disabled
-      if (isDev && process.env.DISABLE_RATE_LIMIT === 'true') return true;
+      if (isDev && env.DISABLE_RATE_LIMIT === 'true') return true;
       return false;
     },
     handler: (_req: Request, _res: Response) => {

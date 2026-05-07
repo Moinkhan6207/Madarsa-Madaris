@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { env } from '../../config/env';
 import { IFileStorage } from './file-storage.interface';
 
 export class LocalStorageService implements IFileStorage {
@@ -47,7 +48,7 @@ export class LocalStorageService implements IFileStorage {
     if (filePath.startsWith('http')) return filePath;
     
     // In production, this would be an S3 URL. Locally, we point to our static server.
-    const baseUrl = process.env.APP_URL || `http://localhost:${process.env.PORT || 5001}`;
+    const baseUrl = env.APP_URL || `http://localhost:${env.PORT || 5001}`;
     
     // Defensive check to avoid double-prefixing if the path accidentally includes 'uploads' twice or the baseUrl
     const cleanedPath = filePath.startsWith('/') ? filePath.slice(1) : filePath;

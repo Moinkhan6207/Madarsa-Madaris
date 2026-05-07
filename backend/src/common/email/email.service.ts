@@ -53,7 +53,7 @@ export class EmailService {
       <h1>Great News!</h1>
       <p>Your institution <strong>${tenantName}</strong> has been approved by the platform administrator.</p>
       <p>You can now log in and begin using the platform features.</p>
-      <p><a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/login">Log In Now</a></p>
+      <p><a href="${env.FRONTEND_URL || 'http://localhost:3000'}/login">Log In Now</a></p>
     `;
     this.sendEmail(email, subject, html);
   }

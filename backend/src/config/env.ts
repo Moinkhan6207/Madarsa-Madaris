@@ -41,6 +41,16 @@ const envSchema = z.object({
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
   SMTP_FROM: z.string().default('no-reply@madarsa.cloud'),
+
+  // Application URLs (required for production to generate correct links)
+  APP_URL: z.string().optional(),
+  FRONTEND_URL: z.string().optional(),
+
+  // Redis (optional — enables distributed cache and job queues)
+  REDIS_URL: z.string().optional(),
+
+  // Development toggles
+  DISABLE_RATE_LIMIT: z.enum(['true', 'false']).default('false'),
 });
 
 // =============================================================================
