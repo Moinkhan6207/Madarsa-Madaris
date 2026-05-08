@@ -24,6 +24,9 @@ export const login = async (email: string, password: string): Promise<AuthRespon
   if (typeof window !== 'undefined') {
     localStorage.setItem('token', data.token);
     localStorage.setItem('user', JSON.stringify(data.user));
+    if (data.user.tenantId) {
+      localStorage.setItem('tenant_id', data.user.tenantId);
+    }
     if (data.user.tenantSlug) {
       localStorage.setItem('tenantSlug', data.user.tenantSlug);
       localStorage.setItem('tenant_slug', data.user.tenantSlug);

@@ -5,6 +5,7 @@ import DashboardScreen from '@/screens/app/DashboardScreen';
 import WebsiteBuilderScreen from '@/screens/app/WebsiteBuilderScreen';
 import LeadsScreen from '@/screens/app/LeadsScreen';
 import SettingsScreen from '@/screens/app/SettingsScreen';
+import StudentsNavigator from '@/navigation/StudentsNavigator';
 import { AppTabParamList } from '@/navigation/types';
 import { colors } from '@/theme';
 
@@ -14,6 +15,7 @@ const iconMap: Record<keyof AppTabParamList, keyof typeof Ionicons.glyphMap> = {
   Dashboard: 'grid-outline',
   Builder: 'globe-outline',
   Leads: 'people-outline',
+  Students: 'school-outline',
   Settings: 'settings-outline',
 };
 
@@ -32,6 +34,7 @@ export default function AppTabs() {
       <Tab.Screen name="Dashboard" component={DashboardScreen} />
       <Tab.Screen name="Builder" component={WebsiteBuilderScreen} options={{ title: 'Website' }} />
       <Tab.Screen name="Leads" component={LeadsScreen} />
+      <Tab.Screen name="Students" component={StudentsNavigator} options={{ title: 'Students' }} />
       <Tab.Screen name="Settings" component={SettingsScreen} />
     </Tab.Navigator>
   );

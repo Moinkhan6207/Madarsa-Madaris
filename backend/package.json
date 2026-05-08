@@ -16,8 +16,8 @@
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
     "typecheck": "tsc --noEmit",
-    "test": "jest",
-    "test:watch": "jest --watch"
+    "test": "node -r ts-node/register/transpile-only ../node_modules/jest/bin/jest.js",
+    "test:watch": "node -r ts-node/register/transpile-only ../node_modules/jest/bin/jest.js --watch"
   },
   "keywords": [
     "madarsa",

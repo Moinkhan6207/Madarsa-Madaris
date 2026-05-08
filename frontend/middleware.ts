@@ -17,6 +17,11 @@ export function middleware(request: NextRequest) {
   const isTenantRoute = pathname.startsWith('/dashboard') || pathname.startsWith('/setup') || pathname.startsWith('/pending');
   const isLandingRoute = pathname === '/';
 
+  // Redirect old /students routes to /dashboard/students
+  if (pathname === '/students' || pathname.startsWith('/students/')) {
+    return NextResponse.redirect(new URL(pathname.replace('/students', '/dashboard/students'), request.url));
+  }
+
   // 2. Auth Logic
   if (!token) {
     // If trying to access protected routes without token -> redirect to login

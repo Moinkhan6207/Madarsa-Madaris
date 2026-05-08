@@ -37,9 +37,8 @@ export class TenantStatsService {
    */
   async computeAndSaveStats(tenantId: string) {
     const [totalStudents, totalTeachers, totalLeads, totalPages, totalBranches] = await Promise.all([
-      // Count users with student role (simplified - in real system, check roles)
-      this.prisma.user.count({
-        where: { tenantId, isActive: true, deletedAt: null }
+      this.prisma.student.count({
+        where: { tenantId, deletedAt: null }
       }),
       // Count users with teacher role (simplified)
       this.prisma.user.count({

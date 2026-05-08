@@ -71,6 +71,10 @@ const createPrismaClient = (): PrismaClient => {
       'User',
       'Branch',
       'AcademicSession',
+      'Student',
+      'StudentGuardian',
+      'Sponsor',
+      'StudentSponsor',
     ];
 
     if (params.model && modelsWithSoftDelete.includes(params.model)) {
@@ -122,6 +126,11 @@ const createPrismaClient = (): PrismaClient => {
       'OnboardingProgress',
       'PlanSubscription',
       'TenantFeature',
+      'Student',
+      'StudentGuardian',
+      'Sponsor',
+      'StudentSponsor',
+      'StudentHistory',
     ];
 
     if (params.model && tenantIsolatedModels.includes(params.model)) {

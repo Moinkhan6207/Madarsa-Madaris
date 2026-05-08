@@ -6,8 +6,11 @@ import { DashboardController } from '../controllers/dashboard.controller';
 import { upload } from '../../../common/middleware/upload.middleware';
 import { authMiddleware } from '../../../common/middleware/auth.middleware';
 import { tenantContextMiddleware } from '../../../common/middleware/tenant-context.middleware';
+import { requirePermission } from '../../../common/middleware/permission.middleware';
 import { cmsRoutes } from '../../cms/routes/cms.routes';
 import { leadRoutes } from '../../leads/routes/lead.routes';
+import { StudentController } from '../../student/controllers/student.controller';
+import { studentRoutes } from '../../student/routes/student.routes';
 
 const router = Router();
 
@@ -52,5 +55,11 @@ router.use('/cms', cmsRoutes);
 
 // ── Lead Engine ────────────────────────────────────────────────────────────
 router.use('/leads', leadRoutes);
+
+// ── Student Management ─────────────────────────────────────────────────────
+router.use('/students', studentRoutes);
+router.put('/guardians/:id', requirePermission('student.guardian.manage'), StudentController.updateGuardian);
+router.delete('/guardians/:id', requirePermission('student.guardian.manage'), StudentController.deleteGuardian);
+router.post('/sponsors', requirePermission('student.sponsor.manage'), StudentController.createSponsor);
 
 export { router as tenantRoutes };

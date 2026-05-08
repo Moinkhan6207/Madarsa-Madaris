@@ -71,6 +71,7 @@ export default function TenantDashboardLayout({ children }: { children: React.Re
     { key: 'sidebar.dashboard', href: '/dashboard', icon: LayoutDashboard },
     { key: 'sidebar.websiteBuilder', href: '/dashboard/website-builder', icon: Globe },
     { key: 'sidebar.leads', href: '/dashboard/leads', icon: MessageSquare },
+    { key: 'sidebar.students', href: '/dashboard/students', icon: School },
     { key: 'sidebar.branches', href: '/dashboard/branches', icon: MapPin },
     { key: 'sidebar.sessions', href: '/dashboard/sessions', icon: Calendar },
     { key: 'sidebar.settings', href: '/dashboard/settings', icon: Settings },

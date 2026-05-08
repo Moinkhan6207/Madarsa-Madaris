@@ -8,6 +8,7 @@ export type AppTabParamList = {
   Dashboard: undefined;
   Builder: undefined;
   Leads: undefined;
+  Students: undefined;
   Settings: undefined;
 };
 
@@ -30,4 +31,14 @@ export type SetupStackParamList = {
 
 export type PendingStackParamList = {
   PendingApproval: undefined;
+};
+
+export type StudentsStackParamList = {
+  StudentsList: undefined;
+  StudentDetail: { studentId: string };
+  StudentCreate: undefined;
+  StudentEdit: { studentId: string };
+  GuardianManage: { studentId: string };
+  SponsorManage: { studentId: string };
+  StudentHistory: { studentId: string };
 };
