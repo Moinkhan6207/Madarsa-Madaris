@@ -6,8 +6,8 @@ import { useRoute, useNavigation } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { colors, radius, spacing, typography } from '@/theme';
-import { useStudent, useAddGuardian, useUpdateGuardian, useRemoveGuardian } from '@/features/students/hooks';
-import { GuardianCard } from '@/features/students/components/GuardianCard';
+import { useStudent, useAddGuardian, useUpdateGuardian, useRemoveGuardian } from '@/modules/students/hooks';
+import { GuardianCard } from '@/modules/students/components/GuardianCard';
 import type { StudentsStackParamList } from '@/navigation/types';
 
 type RouteProps = RouteProp<StudentsStackParamList, 'GuardianManage'>;

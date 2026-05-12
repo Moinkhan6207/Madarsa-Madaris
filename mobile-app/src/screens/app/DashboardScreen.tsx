@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View, Animated, Dimensions, Modal } from 'react-native';
+import { Alert, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View, Animated, Dimensions, Modal } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
@@ -9,6 +9,7 @@ import Card from '@/components/ui/Card';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { api } from '@/services/api';
 import { colors, radius, shadows, spacing, typography } from '@/theme';
+import { useAuthStore } from '@/store/authStore';
 import type { AppTabParamList } from '@/navigation/types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -45,6 +46,7 @@ export default function DashboardScreen() {
   const slideAnim = useState(new Animated.Value(-DRAWER_WIDTH))[0];
   const navigation = useNavigation<BottomTabNavigationProp<AppTabParamList>>();
   const currentRoute = useNavigationState(state => state.routes[state.index]?.name);
+  const { logout } = useAuthStore();
 
   // Fetch stats matching web dashboard
   const { data: stats, isLoading: statsLoading, refetch } = useQuery({
@@ -187,7 +189,23 @@ export default function DashboardScreen() {
                     <Ionicons name="help-circle-outline" size={20} color={colors.slate400} />
                     <Text style={styles.helpText}>Help Center</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.quitItem}>
+                  <TouchableOpacity style={styles.quitItem} onPress={() => {
+                    closeDrawer();
+                    setTimeout(() => {
+                      Alert.alert(
+                        'Quit Session',
+                        'Are you sure you want to log out?',
+                        [
+                          { text: 'Cancel', style: 'cancel' },
+                          {
+                            text: 'Log Out',
+                            style: 'destructive',
+                            onPress: () => logout(),
+                          },
+                        ]
+                      );
+                    }, 350);
+                  }}>
                     <Ionicons name="log-out-outline" size={20} color={colors.red500} />
                     <Text style={styles.quitText}>Quit Session</Text>
                   </TouchableOpacity>

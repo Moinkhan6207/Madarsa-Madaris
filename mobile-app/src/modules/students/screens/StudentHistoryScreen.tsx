@@ -6,8 +6,8 @@ import { useRoute, useNavigation } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { colors, radius, spacing, typography } from '@/theme';
-import { useStudentHistory } from '@/features/students/hooks';
-import { HistoryItem } from '@/features/students/components/HistoryItem';
+import { useStudentHistory } from '@/modules/students/hooks';
+import { HistoryItem } from '@/modules/students/components/HistoryItem';
 import type { StudentsStackParamList } from '@/navigation/types';
 
 type RouteProps = RouteProp<StudentsStackParamList, 'StudentHistory'>;

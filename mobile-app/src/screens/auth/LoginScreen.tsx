@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Image, ImageBackground, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Card from '@/components/ui/Card';
@@ -12,8 +12,8 @@ import { AuthStackParamList } from '@/navigation/types';
 type Props = NativeStackScreenProps<AuthStackParamList, 'Login'>;
 
 export default function LoginScreen({ navigation }: Props) {
-  const [email, setEmail] = useState('admin@madarsa.org');
-  const [password, setPassword] = useState('password123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [remember, setRemember] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const login = useAuthStore((state) => state.login);
@@ -35,7 +35,35 @@ export default function LoginScreen({ navigation }: Props) {
         <Text style={styles.backText}>Back to Home</Text>
       </Pressable>
 
-      <Text style={styles.kalma}>لَا إِلٰهَ إِلَّا ٱلله مُحَمَّدٌ رَسُولُ ٱلله</Text>
+      {/* Remove standalone Kalma — now shown on image */}
+
+      {/* Premium Hero Image Section */}
+      <View style={styles.heroBanner}>
+        <ImageBackground
+          source={require('../../../assets/image.png')}
+          style={styles.heroImage}
+          imageStyle={styles.heroImageStyle}
+        >
+          {/* Dark gradient overlay */}
+          <View style={styles.heroOverlay}>
+            {/* Top decorative row */}
+            <View style={styles.heroTopRow}>
+              <View style={styles.heroDot} />
+              <Text style={styles.heroBadge}>✦ بِسْمِ اللهِ الرَّحْمٰنِ الرَّحِيمِ ✦</Text>
+              <View style={styles.heroDot} />
+            </View>
+            {/* Kalma on image */}
+            <Text style={styles.heroKalma}>لَا إِلٰهَ إِلَّا ٱلله</Text>
+            <Text style={styles.heroKalma2}>مُحَمَّدٌ رَسُولُ ٱلله</Text>
+            {/* Bottom label */}
+            <View style={styles.heroBottomRow}>
+              <View style={styles.goldLine} />
+              <Text style={styles.heroLabel}>IdaraSys — Madarsa Management</Text>
+              <View style={styles.goldLine} />
+            </View>
+          </View>
+        </ImageBackground>
+      </View>
 
       <View style={styles.headerWrap}>
         <Text style={styles.title}>Welcome <Text style={{ color: colors.primary600 }}>Back</Text></Text>
@@ -145,4 +173,93 @@ const styles = StyleSheet.create({
   bottomWrap: { alignItems: 'center', marginTop: spacing.xl, gap: spacing.sm },
   bottomText: { ...typography.body, color: colors.slate500, textAlign: 'center' },
   bottomBtn: { width: '100%' },
+
+  // Premium hero banner
+  heroBanner: {
+    marginHorizontal: -spacing.lg,
+    marginTop: -spacing.sm,
+    marginBottom: spacing.lg,
+    borderRadius: 24,
+    overflow: 'hidden',
+    shadowColor: '#c4a44a',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.45,
+    shadowRadius: 18,
+    elevation: 12,
+    borderWidth: 2,
+    borderColor: '#c4a44a55',
+  },
+  heroImage: {
+    width: '100%',
+    height: 210,
+  },
+  heroImageStyle: {
+    borderRadius: 22,
+  },
+  heroOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(10, 14, 30, 0.62)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.md,
+    gap: spacing['1'],
+  },
+  heroTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing['2'],
+    marginBottom: spacing['2'],
+  },
+  heroDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#c4a44a',
+  },
+  heroBadge: {
+    fontSize: 10,
+    color: '#c4a44a',
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    textAlign: 'center',
+  },
+  heroKalma: {
+    fontSize: 26,
+    color: '#ffffff',
+    fontWeight: '800',
+    textAlign: 'center',
+    textShadowColor: 'rgba(196,164,74,0.7)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 12,
+    letterSpacing: 0.5,
+  },
+  heroKalma2: {
+    fontSize: 22,
+    color: '#e8d5a0',
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: spacing['3'],
+    textShadowColor: 'rgba(196,164,74,0.5)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 10,
+  },
+  heroBottomRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing['2'],
+    marginTop: spacing['2'],
+  },
+  goldLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#c4a44a88',
+  },
+  heroLabel: {
+    fontSize: 10,
+    color: '#c4a44a',
+    fontWeight: '700',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
 });

@@ -41,4 +41,5 @@ export type StudentsStackParamList = {
   GuardianManage: { studentId: string };
   SponsorManage: { studentId: string };
   StudentHistory: { studentId: string };
+  StudentDocuments: { studentId: string };
 };

@@ -37,11 +37,14 @@ export interface CreateStudentInput {
   rollNumber?: string;
   firstName: string;
   lastName?: string;
+  arabicName?: string;
   gender?: string;
   dateOfBirth?: string;
+  bloodGroup?: string;
   admissionDate?: string;
   phone?: string;
   email?: string;
+  identityNumber?: string;
   addressLine1?: string;
   addressLine2?: string;
   city?: string;
@@ -53,7 +56,9 @@ export interface CreateStudentInput {
   isNeedy?: boolean;
   currentProgram?: string;
   currentClass?: string;
+  currentSection?: string;
   leadSource?: string;
+  photoUrl?: string;
   notes?: string;
   guardians?: GuardianInput[];
   sponsorMappings?: SponsorMappingInput[];

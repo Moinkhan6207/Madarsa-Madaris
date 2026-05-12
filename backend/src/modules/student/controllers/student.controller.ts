@@ -23,6 +23,7 @@ export class StudentController {
     try {
       const tenantId = req.context!.tenantId!;
       const query = studentValidators.list.parse(req.query);
+      console.log('DEBUG: listStudents called from', req.headers['user-agent'], 'with tenantId:', tenantId, 'query:', query);
       const result = await studentService.listStudents(tenantId, query);
       paginatedResponse(res, result);
     } catch (error) {
@@ -36,6 +37,17 @@ export class StudentController {
       const { id } = studentValidators.idParam.parse(req.params);
       const student = await studentService.getStudentById(tenantId, id);
       successResponse(res, student);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getHistory(req: Request, res: Response, next: NextFunction) {
+    try {
+      const tenantId = req.context!.tenantId!;
+      const { id } = studentValidators.idParam.parse(req.params);
+      const history = await studentService.getStudentHistory(tenantId, id);
+      successResponse(res, history);
     } catch (error) {
       next(error);
     }
@@ -129,6 +141,16 @@ export class StudentController {
     }
   }
 
+  static async listSponsors(req: Request, res: Response, next: NextFunction) {
+    try {
+      const tenantId = req.context!.tenantId!;
+      const sponsors = await studentService.listSponsors(tenantId);
+      successResponse(res, sponsors);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async mapSponsor(req: Request, res: Response, next: NextFunction) {
     try {
       const tenantId = req.context!.tenantId!;
@@ -150,6 +172,33 @@ export class StudentController {
         .extend(studentValidators.sponsorIdParam.shape)
         .parse(req.params);
       await studentService.unlinkSponsor(tenantId, actorUserId, id, sponsorId);
+      noContentResponse(res);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async createDocument(req: Request, res: Response, next: NextFunction) {
+    try {
+      const tenantId = req.context!.tenantId!;
+      const actorUserId = req.context!.userId;
+      const { id } = studentValidators.studentIdParam.parse(req.params);
+      const payload = studentValidators.createDocument.parse(req.body);
+      const document = await studentService.addDocument(tenantId, actorUserId, id, payload);
+      createdResponse(res, document);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async deleteDocument(req: Request, res: Response, next: NextFunction) {
+    try {
+      const tenantId = req.context!.tenantId!;
+      const actorUserId = req.context!.userId;
+      const { id, documentId } = studentValidators.studentIdParam
+        .extend(studentValidators.documentIdParam.shape)
+        .parse(req.params);
+      await studentService.deleteDocument(tenantId, actorUserId, id, documentId);
       noContentResponse(res);
     } catch (error) {
       next(error);

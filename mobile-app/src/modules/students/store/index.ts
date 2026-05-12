@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Student, StudentListFilters, PaginatedStudentsResponse } from './types';
+import type { Student, StudentListFilters, PaginatedStudentsResponse } from '../types';
 
 interface StudentsState {
   listCache: Record<string, PaginatedStudentsResponse>;

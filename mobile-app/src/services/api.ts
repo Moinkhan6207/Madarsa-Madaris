@@ -1,6 +1,7 @@
 import axios, { AxiosError } from 'axios';
 import { API_BASE_URL } from '@/constants/config';
 import { storage } from '@/utils/storage';
+import { useAuthStore } from '@/store/authStore';
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
@@ -19,8 +20,7 @@ api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError<{ error?: { code?: string } }>) => {
     if (error.response?.status === 401) {
-      await storage.clearToken();
-      await storage.clearUser();
+      await useAuthStore.getState().logout();
     }
     return Promise.reject(error);
   }

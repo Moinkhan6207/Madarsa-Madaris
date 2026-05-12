@@ -60,6 +60,7 @@ router.use('/leads', leadRoutes);
 router.use('/students', studentRoutes);
 router.put('/guardians/:id', requirePermission('student.guardian.manage'), StudentController.updateGuardian);
 router.delete('/guardians/:id', requirePermission('student.guardian.manage'), StudentController.deleteGuardian);
+router.get('/sponsors', requirePermission('student.view'), StudentController.listSponsors);
 router.post('/sponsors', requirePermission('student.sponsor.manage'), StudentController.createSponsor);
 
 export { router as tenantRoutes };

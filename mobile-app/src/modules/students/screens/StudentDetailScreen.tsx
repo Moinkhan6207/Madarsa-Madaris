@@ -5,8 +5,10 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  TextInput,
   Alert,
   RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,12 +18,12 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import Card from '@/components/ui/Card';
 import { colors, radius, shadows, spacing, typography } from '@/theme';
-import { useStudent, useDeleteStudent, useChangeStudentStatus } from '@/features/students/hooks';
-import { StatusBadge } from '@/features/students/components/StatusBadge';
-import { GuardianCard } from '@/features/students/components/GuardianCard';
-import { SponsorCard } from '@/features/students/components/SponsorCard';
-import { HistoryItem } from '@/features/students/components/HistoryItem';
-import { canTransition, type StudentStatus } from '@/features/students/types';
+import { useStudent, useDeleteStudent, useChangeStudentStatus } from '@/modules/students/hooks';
+import { StatusBadge } from '@/modules/students/components/StatusBadge';
+import { GuardianCard } from '@/modules/students/components/GuardianCard';
+import { SponsorCard } from '@/modules/students/components/SponsorCard';
+import { HistoryItem } from '@/modules/students/components/HistoryItem';
+import { canTransition, type StudentStatus } from '@/modules/students/types';
 import type { StudentsStackParamList } from '@/navigation/types';
 
 type RouteProps = RouteProp<StudentsStackParamList, 'StudentDetail'>;
@@ -38,6 +40,7 @@ export default function StudentDetailScreen() {
 
   const [statusModalVisible, setStatusModalVisible] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<StudentStatus | null>(null);
+  const [statusNotes, setStatusNotes] = useState('');
 
   const handleDelete = useCallback(() => {
     Alert.alert(
@@ -60,13 +63,18 @@ export default function StudentDetailScreen() {
   const handleStatusChange = useCallback(async () => {
     if (!selectedStatus || !student) return;
     if (!canTransition(student.status, selectedStatus)) {
-      Alert.alert('Invalid Transition', `Cannot transition from ${student.status} to ${selectedStatus}`);
+      Alert.alert('Invalid Transition', `Cannot move from ${student.status} to ${selectedStatus}`);
       return;
     }
-    await statusMutation.mutateAsync({ status: selectedStatus });
-    setStatusModalVisible(false);
-    setSelectedStatus(null);
-  }, [selectedStatus, student, statusMutation]);
+    try {
+      await statusMutation.mutateAsync({ status: selectedStatus, notes: statusNotes.trim() || undefined });
+      setStatusModalVisible(false);
+      setSelectedStatus(null);
+      setStatusNotes('');
+    } catch (err: any) {
+      Alert.alert('Error', err?.response?.data?.error?.message || 'Failed to update status. Please try again.');
+    }
+  }, [selectedStatus, statusNotes, student, statusMutation]);
 
   if (isLoading || !student) {
     return (
@@ -79,7 +87,7 @@ export default function StudentDetailScreen() {
   }
 
   const allowedTransitions = student ? (() => {
-    const { getAllowedTransitions } = require('@/features/students/types');
+    const { getAllowedTransitions } = require('@/modules/students/types');
     return getAllowedTransitions(student.status);
   })() : [];
 
@@ -119,6 +127,11 @@ export default function StudentDetailScreen() {
                 {student.isNeedy && (
                   <View style={[styles.miniBadge, { backgroundColor: colors.blue50 }]}>
                     <Text style={[styles.miniBadgeText, { color: colors.blue600 }]}>Needy</Text>
+                  </View>
+                )}
+                {student.isSponsored && (
+                  <View style={[styles.miniBadge, { backgroundColor: colors.emerald50 }]}>
+                    <Text style={[styles.miniBadgeText, { color: colors.emerald600 }]}>Sponsored</Text>
                   </View>
                 )}
               </View>
@@ -239,6 +252,19 @@ export default function StudentDetailScreen() {
           )}
         </Card>
 
+        {/* Documents */}
+        <Card padding="lg" style={styles.sectionCard}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Documents ({student.documents?.filter(d => !d.deletedAt).length ?? 0})</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('StudentDocuments', { studentId })}>
+              <Text style={styles.sectionAction}>Manage</Text>
+            </TouchableOpacity>
+          </View>
+          {(student.documents?.filter(d => !d.deletedAt).length ?? 0) === 0 && (
+            <Text style={styles.emptyText}>No documents uploaded.</Text>
+          )}
+        </Card>
+
         {/* History */}
         <Card padding="lg" style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
@@ -262,9 +288,10 @@ export default function StudentDetailScreen() {
           <View style={styles.modal}>
             <Text style={styles.modalTitle}>Change Status</Text>
             <Text style={styles.modalCurrent}>Current: <Text style={styles.modalCurrentValue}>{student.status}</Text></Text>
-            <ScrollView style={styles.modalList}>
+
+            <ScrollView style={styles.modalList} keyboardShouldPersistTaps="handled">
               {allowedTransitions.length === 0 ? (
-                <Text style={styles.modalEmpty}>No transitions available.</Text>
+                <Text style={styles.modalEmpty}>No transitions available for this status.</Text>
               ) : (
                 allowedTransitions.map((s: StudentStatus) => (
                   <TouchableOpacity
@@ -274,22 +301,40 @@ export default function StudentDetailScreen() {
                   >
                     <StatusBadge status={s} />
                     {selectedStatus === s && (
-                      <Ionicons name="checkmark" size={18} color={colors.primary600} />
+                      <Ionicons name="checkmark-circle" size={20} color={colors.primary600} />
                     )}
                   </TouchableOpacity>
                 ))
               )}
+
+              <Text style={[styles.label, { marginTop: spacing['4'], marginBottom: spacing['1'] }]}>Reason / Notes (optional)</Text>
+              <TextInput
+                style={styles.notesInput}
+                value={statusNotes}
+                onChangeText={setStatusNotes}
+                placeholder="Add a reason for this status change..."
+                placeholderTextColor={colors.slate300}
+                multiline
+                numberOfLines={3}
+              />
             </ScrollView>
+
             <View style={styles.modalActions}>
-              <TouchableOpacity style={styles.modalCancel} onPress={() => { setStatusModalVisible(false); setSelectedStatus(null); }}>
+              <TouchableOpacity
+                style={styles.modalCancel}
+                onPress={() => { setStatusModalVisible(false); setSelectedStatus(null); setStatusNotes(''); }}
+              >
                 <Text style={styles.modalCancelText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.modalConfirm, !selectedStatus && styles.modalConfirmDisabled]}
-                disabled={!selectedStatus}
+                style={[styles.modalConfirm, (!selectedStatus || statusMutation.isPending) && styles.modalConfirmDisabled]}
+                disabled={!selectedStatus || statusMutation.isPending}
                 onPress={handleStatusChange}
               >
-                <Text style={styles.modalConfirmText}>Confirm</Text>
+                {statusMutation.isPending
+                  ? <ActivityIndicator size="small" color={colors.white} />
+                  : <Text style={styles.modalConfirmText}>Confirm</Text>
+                }
               </TouchableOpacity>
             </View>
           </View>
@@ -548,5 +593,22 @@ const styles = StyleSheet.create({
   modalConfirmText: {
     ...typography.smallBold,
     color: colors.white,
+  },
+  notesInput: {
+    backgroundColor: colors.slate50,
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: colors.slate200,
+    paddingHorizontal: spacing['3'],
+    paddingVertical: spacing['2'],
+    ...typography.small,
+    color: colors.slate900,
+    minHeight: 80,
+    textAlignVertical: 'top',
+    marginBottom: spacing['2'],
+  },
+  label: {
+    ...typography.smallBold,
+    color: colors.slate600,
   },
 });

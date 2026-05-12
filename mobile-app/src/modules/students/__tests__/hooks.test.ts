@@ -86,9 +86,9 @@ describe('mobile student hooks', () => {
 
       const { result } = renderHook(() => useCreateStudent(), { wrapper: createWrapper() });
 
-      await result.current.mutateAsync({ firstName: 'Ali', lastName: 'Khan', gender: 'MALE', dateOfBirth: '2000-01-01', branchId: 'b1' });
+      await result.current.mutateAsync({ firstName: 'Ali', lastName: 'Khan', gender: 'male', dateOfBirth: '2000-01-01', branchId: 'b1' });
 
-      expect(studentService.create).toHaveBeenCalledWith({ firstName: 'Ali', lastName: 'Khan', gender: 'MALE', dateOfBirth: '2000-01-01', branchId: 'b1' });
+      expect(studentService.create).toHaveBeenCalledWith({ firstName: 'Ali', lastName: 'Khan', gender: 'male', dateOfBirth: '2000-01-01', branchId: 'b1' });
     });
   });
 
@@ -124,9 +124,9 @@ describe('mobile student hooks', () => {
 
       const { result } = renderHook(() => useChangeStudentStatus('1'), { wrapper: createWrapper() });
 
-      await result.current.mutateAsync({ status: 'ACTIVE', reason: 'Test' });
+      await result.current.mutateAsync({ status: 'ACTIVE', notes: 'Test' });
 
-      expect(studentService.changeStatus).toHaveBeenCalledWith('1', { status: 'ACTIVE', reason: 'Test' });
+      expect(studentService.changeStatus).toHaveBeenCalledWith('1', { status: 'ACTIVE', notes: 'Test' });
     });
   });
 

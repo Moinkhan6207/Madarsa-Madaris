@@ -8,6 +8,7 @@ import {
   StudentListQuerySchema,
   UpdateGuardianSchema,
   UpdateStudentSchema,
+  CreateDocumentSchema,
 } from '../dto/student.dto';
 
 export const studentValidators = {
@@ -19,6 +20,7 @@ export const studentValidators = {
   updateGuardian: UpdateGuardianSchema,
   createSponsor: CreateSponsorSchema,
   mapSponsor: MapSponsorSchema,
+  createDocument: CreateDocumentSchema,
   idParam: z.object({
     id: z.string().uuid(),
   }),
@@ -30,5 +32,8 @@ export const studentValidators = {
   }),
   sponsorIdParam: z.object({
     sponsorId: z.string().uuid(),
+  }),
+  documentIdParam: z.object({
+    documentId: z.string().uuid(),
   }),
 };

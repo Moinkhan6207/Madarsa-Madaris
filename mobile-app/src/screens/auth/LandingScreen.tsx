@@ -86,7 +86,7 @@ export default function LandingScreen({ navigation }: Props) {
           <View style={styles.menuHeader}>
             <View style={styles.brandRow}>
               <View style={[styles.logoBox, { width: 40, height: 40 }]}>
-                <Image source={{ uri: 'https://madarsa-saas.com/assets/makka_sharif.png' }} style={styles.logo} />
+                <Image source={require('../../../assets/image.png')} style={styles.logo} />
               </View>
               <Text style={styles.menuBrandText}>Menu</Text>
             </View>
@@ -135,7 +135,7 @@ export default function LandingScreen({ navigation }: Props) {
       <View style={styles.navbar}>
         <View style={styles.brandRow}>
           <View style={styles.logoBox}>
-            <Image source={{ uri: 'https://madarsa-saas.com/assets/makka_sharif.png' }} style={styles.logo} />
+            <Image source={require('../../../assets/image.png')} style={styles.logo} />
           </View>
           <Text style={styles.brandText}>Idara<Text style={styles.brandAccent}>Sys</Text></Text>
         </View>
@@ -217,7 +217,7 @@ export default function LandingScreen({ navigation }: Props) {
 
       <View style={styles.footer}>
         <View style={styles.brandRow}>
-          <View style={[styles.logoBox, { width: 32, height: 32, padding: 2 }]}><Image source={{ uri: 'https://madarsa-saas.com/assets/makka_sharif.png' }} style={styles.logo} /></View>
+          <View style={[styles.logoBox, { width: 32, height: 32, padding: 2 }]}><Image source={require('../../../assets/image.png')} style={styles.logo} /></View>
           <Text style={styles.footerBrand}>Idara<Text style={styles.brandAccent}>Sys</Text></Text>
         </View>
         <Text style={styles.footerText}>The complete, modern, and secure management platform built specifically for the needs of Madarsas, Masjids, and Islamic Institutions.</Text>

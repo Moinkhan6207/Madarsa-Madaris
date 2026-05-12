@@ -90,6 +90,14 @@ enum StudentHistoryEvent {
   SOFT_DELETED
 }
 
+enum StudentDocumentType {
+  ID_PROOF
+  MEDICAL_RECORD
+  ADMISSION_FORM
+  CERTIFICATE
+  OTHER
+}
+
 model Tenant {
   id               String          @id @default(uuid())
   slug             String          @unique
@@ -126,6 +134,7 @@ model Tenant {
   studentGuardians StudentGuardian[]
   studentSponsors  StudentSponsor[]
   studentHistory   StudentHistory[]
+  studentDocuments StudentDocument[]
 }
 
 model TenantSlugHistory {
@@ -449,9 +458,9 @@ model PageBlock {
   id        String   @id @default(uuid())
   pageId    String
   tenantId  String
-  type      String   // e.g., 'hero', 'about', 'courses', 'stats', 'testimonials', 'gallery', 'cta', 'donation-banner'
-  content   Json     // stores text, image URLs, etc.
-  config    Json     // stores layout config, colors, etc.
+  type      String // e.g., 'hero', 'about', 'courses', 'stats', 'testimonials', 'gallery', 'cta', 'donation-banner'
+  content   Json // stores text, image URLs, etc.
+  config    Json // stores layout config, colors, etc.
   order     Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -464,12 +473,12 @@ model PageBlock {
 model Lead {
   id        String   @id @default(uuid())
   tenantId  String
-  type      String   // 'ADMISSION', 'CONTACT', 'INQUIRY', 'VOLUNTEER'
+  type      String // 'ADMISSION', 'CONTACT', 'INQUIRY', 'VOLUNTEER'
   name      String?
   email     String?
   phone     String?
   message   String?
-  formData  Json     // stores text, image URLs, etc.
+  formData  Json // stores text, image URLs, etc.
   status    String   @default("NEW") // NEW, IN_PROGRESS, CONVERTED, REJECTED
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -486,7 +495,7 @@ model Media {
   id        String   @id @default(uuid())
   tenantId  String
   url       String
-  type      String   // 'IMAGE', 'VIDEO', 'DOCUMENT'
+  type      String // 'IMAGE', 'VIDEO', 'DOCUMENT'
   fileName  String?
   fileSize  Int?
   mimeType  String?
@@ -501,22 +510,22 @@ model Media {
 }
 
 model TenantStats {
-  id             String   @id @default(uuid())
-  tenantId       String   @unique
-  totalStudents  Int      @default(0)
-  totalTeachers  Int      @default(0)
-  totalLeads     Int      @default(0)
-  totalPages     Int      @default(0)
-  totalBranches  Int      @default(0)
-  lastUpdatedAt  DateTime @default(now())
-  createdAt      DateTime @default(now())
-  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  id            String   @id @default(uuid())
+  tenantId      String   @unique
+  totalStudents Int      @default(0)
+  totalTeachers Int      @default(0)
+  totalLeads    Int      @default(0)
+  totalPages    Int      @default(0)
+  totalBranches Int      @default(0)
+  lastUpdatedAt DateTime @default(now())
+  createdAt     DateTime @default(now())
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
 }
 
 model Student {
-  id                String         @id @default(uuid())
+  id                String            @id @default(uuid())
   tenantId          String
   branchId          String
   academicSessionId String?
@@ -525,34 +534,40 @@ model Student {
   firstName         String
   lastName          String?
   fullName          String
+  arabicName        String?
   gender            String?
   dateOfBirth       DateTime?
-  admissionDate     DateTime      @default(now())
+  bloodGroup        String?
+  admissionDate     DateTime          @default(now())
   phone             String?
   email             String?
+  identityNumber    String?
   addressLine1      String?
   addressLine2      String?
   city              String?
   state             String?
   country           String?
   postalCode        String?
-  status            StudentStatus  @default(LEAD)
-  isOrphan          Boolean        @default(false)
-  isNeedy           Boolean        @default(false)
-  isSponsored       Boolean        @default(false)
+  status            StudentStatus     @default(LEAD)
+  isOrphan          Boolean           @default(false)
+  isNeedy           Boolean           @default(false)
+  isSponsored       Boolean           @default(false)
   currentProgram    String?
   currentClass      String?
+  currentSection    String?
   leadSource        String?
+  photoUrl          String?
   notes             String?
   deletedAt         DateTime?
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
-  tenant            Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  branch            Branch         @relation(fields: [branchId], references: [id], onDelete: Restrict)
-  academicSession   AcademicSession? @relation(fields: [academicSessionId], references: [id], onDelete: SetNull)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  tenant            Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  branch            Branch            @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  academicSession   AcademicSession?  @relation(fields: [academicSessionId], references: [id], onDelete: SetNull)
   guardians         StudentGuardian[]
   sponsors          StudentSponsor[]
   history           StudentHistory[]
+  documents         StudentDocument[]
 
   @@unique([tenantId, admissionNumber])
   @@unique([tenantId, rollNumber])
@@ -566,28 +581,28 @@ model Student {
 }
 
 model StudentGuardian {
-  id              String                  @id @default(uuid())
-  tenantId        String
-  studentId       String
-  relation        StudentGuardianRelation
-  fullName        String
-  phone           String
-  alternatePhone  String?
-  email           String?
-  occupation      String?
-  addressLine1    String?
-  addressLine2    String?
-  city            String?
-  state           String?
-  country         String?
-  postalCode      String?
-  isPrimary       Boolean                 @default(false)
-  notes           String?
-  deletedAt       DateTime?
-  createdAt       DateTime                @default(now())
-  updatedAt       DateTime                @updatedAt
-  tenant          Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  student         Student                 @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  id             String                  @id @default(uuid())
+  tenantId       String
+  studentId      String
+  relation       StudentGuardianRelation
+  fullName       String
+  phone          String
+  alternatePhone String?
+  email          String?
+  occupation     String?
+  addressLine1   String?
+  addressLine2   String?
+  city           String?
+  state          String?
+  country        String?
+  postalCode     String?
+  isPrimary      Boolean                 @default(false)
+  notes          String?
+  deletedAt      DateTime?
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+  tenant         Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  student        Student                 @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@index([tenantId, studentId, deletedAt])
   @@index([tenantId, phone])
@@ -595,18 +610,18 @@ model StudentGuardian {
 }
 
 model Sponsor {
-  id            String           @id @default(uuid())
-  tenantId      String
-  name          String
-  phone         String?
-  email         String?
-  organization  String?
-  notes         String?
-  deletedAt     DateTime?
-  createdAt     DateTime         @default(now())
-  updatedAt     DateTime         @updatedAt
-  tenant        Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  studentLinks  StudentSponsor[]
+  id           String           @id @default(uuid())
+  tenantId     String
+  name         String
+  phone        String?
+  email        String?
+  organization String?
+  notes        String?
+  deletedAt    DateTime?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  tenant       Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  studentLinks StudentSponsor[]
 
   @@unique([tenantId, name, phone])
   @@index([tenantId, deletedAt])
@@ -637,20 +652,39 @@ model StudentSponsor {
 }
 
 model StudentHistory {
-  id          String              @id @default(uuid())
-  tenantId    String
-  studentId   String
-  event       StudentHistoryEvent
-  fieldName   String?
-  oldValue    Json?
-  newValue    Json?
-  metadata    Json?
-  changedBy   String?
-  changedAt   DateTime            @default(now())
-  createdAt   DateTime            @default(now())
-  tenant      Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  student     Student             @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  id        String              @id @default(uuid())
+  tenantId  String
+  studentId String
+  event     StudentHistoryEvent
+  fieldName String?
+  oldValue  Json?
+  newValue  Json?
+  metadata  Json?
+  changedBy String?
+  changedAt DateTime            @default(now())
+  createdAt DateTime            @default(now())
+  tenant    Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  student   Student             @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@index([tenantId, studentId, changedAt])
   @@index([tenantId, event, changedAt])
+}
+
+model StudentDocument {
+  id           String              @id @default(uuid())
+  tenantId     String
+  studentId    String
+  documentUrl  String
+  documentType StudentDocumentType
+  title        String?
+  notes        String?
+  uploadedAt   DateTime            @default(now())
+  deletedAt    DateTime?
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  tenant       Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  student      Student             @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, studentId, deletedAt])
+  @@index([tenantId, documentType])
 }

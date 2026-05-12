@@ -4,6 +4,7 @@ import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Loader2, AlertTriangle } from 'lucide-react';
 import { useStudent, useUpdateStudent } from '@/features/students/hooks/useStudents';
+import { useBranches, useSessions, useSponsors } from '@/features/students/hooks/useReferenceData';
 import { StudentForm } from '@/features/students/components/StudentForm';
 import type { UpdateStudentPayload } from '@/features/students/types/student';
 
@@ -12,13 +13,18 @@ export default function EditStudentPage() {
   const router = useRouter();
   const id = params.id as string;
 
-  const { data: student, isLoading } = useStudent(id);
+  const { data: student, isLoading: studentLoading } = useStudent(id);
   const updateMutation = useUpdateStudent(id);
+  const { data: branches = [], isLoading: branchesLoading } = useBranches();
+  const { data: sessions = [], isLoading: sessionsLoading } = useSessions();
+  const { data: sponsors = [], isLoading: sponsorsLoading } = useSponsors();
 
   const handleSubmit = async (data: any) => {
     await updateMutation.mutateAsync(data as UpdateStudentPayload);
     router.push(`/dashboard/students/${id}`);
   };
+
+  const isLoading = studentLoading || branchesLoading || sessionsLoading || sponsorsLoading;
 
   if (isLoading) {
     return (
@@ -58,9 +64,9 @@ export default function EditStudentPage() {
       <StudentForm
         mode="edit"
         student={student}
-        branches={[]}
-        sessions={[]}
-        sponsors={[]}
+        branches={branches}
+        sessions={sessions}
+        sponsors={sponsors}
         onSubmit={handleSubmit}
         isLoading={updateMutation.isPending}
       />

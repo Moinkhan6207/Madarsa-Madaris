@@ -26,9 +26,9 @@ const guardianSchema = z.object({
 });
 
 const sponsorMappingSchema = z.object({
-  sponsorId: z.string().uuid(),
+  sponsorId: z.string().min(1, 'Please select a sponsor').uuid('Invalid sponsor ID'),
   supportLabel: z.string().optional(),
-  amount: z.number().nonnegative().optional(),
+  amount: z.number().nonnegative('Amount must be positive').optional().or(z.nan().transform(() => undefined)),
   currencyCode: z.string().optional(),
   startDate: z.string().optional(),
   endDate: z.string().optional(),
@@ -60,6 +60,15 @@ const baseStudentSchema = z.object({
   notes: z.string().optional(),
   guardians: z.array(guardianSchema).max(10).optional(),
   sponsorMappings: z.array(sponsorMappingSchema).max(20).optional(),
+}).superRefine((data, ctx) => {
+  const primaryCount = data.guardians?.filter((guardian) => guardian.isPrimary).length ?? 0;
+  if (primaryCount > 1) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Only one primary guardian is allowed',
+      path: ['guardians'],
+    });
+  }
 });
 
 type StudentFormData = z.infer<typeof baseStudentSchema>;
@@ -180,10 +189,54 @@ export function StudentForm({ student, branches, sessions, sponsors, onSubmit, i
   const onFormSubmit = async (data: StudentFormData) => {
     setError(null);
     try {
+      const toDateTime = (value?: string) => (value ? new Date(`${value}T00:00:00.000Z`).toISOString() : undefined);
+      const cleanedGuardians = data.guardians?.map((guardian) => ({
+        ...guardian,
+        alternatePhone: guardian.alternatePhone || undefined,
+        email: guardian.email || undefined,
+        occupation: guardian.occupation || undefined,
+        addressLine1: guardian.addressLine1 || undefined,
+        addressLine2: guardian.addressLine2 || undefined,
+        city: guardian.city || undefined,
+        state: guardian.state || undefined,
+        country: guardian.country || undefined,
+        postalCode: guardian.postalCode || undefined,
+        notes: guardian.notes || undefined,
+        isPrimary: guardian.isPrimary ?? false,
+      }));
+      const cleanedSponsorMappings = data.sponsorMappings
+        ?.filter((mapping) => mapping.sponsorId)
+        .map((mapping) => ({
+          ...mapping,
+          supportLabel: mapping.supportLabel || undefined,
+          amount: typeof mapping.amount === 'number' && !Number.isNaN(mapping.amount) ? mapping.amount : undefined,
+          currencyCode: mapping.currencyCode || undefined,
+          startDate: toDateTime(mapping.startDate),
+          endDate: toDateTime(mapping.endDate),
+          notes: mapping.notes || undefined,
+        }));
       const payload: CreateStudentPayload | UpdateStudentPayload = {
         ...data,
-        guardians: data.guardians?.length ? data.guardians : undefined,
-        sponsorMappings: data.sponsorMappings?.length ? data.sponsorMappings : undefined,
+        academicSessionId: data.academicSessionId || undefined,
+        rollNumber: data.rollNumber || undefined,
+        lastName: data.lastName || undefined,
+        gender: data.gender || undefined,
+        dateOfBirth: toDateTime(data.dateOfBirth),
+        admissionDate: toDateTime(data.admissionDate),
+        phone: data.phone || undefined,
+        email: data.email || undefined,
+        addressLine1: data.addressLine1 || undefined,
+        addressLine2: data.addressLine2 || undefined,
+        city: data.city || undefined,
+        state: data.state || undefined,
+        country: data.country || undefined,
+        postalCode: data.postalCode || undefined,
+        currentProgram: data.currentProgram || undefined,
+        currentClass: data.currentClass || undefined,
+        leadSource: data.leadSource || undefined,
+        notes: data.notes || undefined,
+        guardians: cleanedGuardians?.length ? cleanedGuardians : undefined,
+        sponsorMappings: cleanedSponsorMappings?.length ? cleanedSponsorMappings : undefined,
       };
       await onSubmit(payload);
     } catch (err: any) {
@@ -197,6 +250,20 @@ export function StudentForm({ student, branches, sessions, sponsors, onSubmit, i
         <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm font-medium text-red-700">
           <AlertCircle className="w-4 h-4 shrink-0" />
           {error}
+        </div>
+      )}
+
+      {Object.keys(errors).length > 0 && !errors.guardians?.message && (
+        <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm font-medium text-red-700">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          Please fix the validation errors below before submitting.
+        </div>
+      )}
+
+      {errors.guardians?.message && (
+        <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm font-medium text-red-700">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          {errors.guardians.message}
         </div>
       )}
 
@@ -368,19 +435,22 @@ export function StudentForm({ student, branches, sessions, sponsors, onSubmit, i
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div>
                     <label className="text-xs font-semibold text-slate-500 mb-1 block">Relation *</label>
-                    <select {...register(`guardians.${index}.relation`)} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500">
+                    <select {...register(`guardians.${index}.relation`)} className={`w-full px-3 py-2 bg-white border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 ${errors.guardians?.[index]?.relation ? 'border-red-400' : 'border-slate-200'}`}>
                       {['FATHER', 'MOTHER', 'BROTHER', 'SISTER', 'UNCLE', 'AUNT', 'GRANDPARENT', 'SPOUSE', 'OTHER'].map((r) => (
                         <option key={r} value={r}>{r.charAt(0) + r.slice(1).toLowerCase()}</option>
                       ))}
                     </select>
+                    {errors.guardians?.[index]?.relation && <p className="mt-1 text-xs text-red-600">{errors.guardians[index]?.relation?.message}</p>}
                   </div>
                   <div>
                     <label className="text-xs font-semibold text-slate-500 mb-1 block">Full Name *</label>
-                    <input {...register(`guardians.${index}.fullName`)} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" placeholder="Full name" />
+                    <input {...register(`guardians.${index}.fullName`)} className={`w-full px-3 py-2 bg-white border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 ${errors.guardians?.[index]?.fullName ? 'border-red-400' : 'border-slate-200'}`} placeholder="Full name" />
+                    {errors.guardians?.[index]?.fullName && <p className="mt-1 text-xs text-red-600">{errors.guardians[index]?.fullName?.message}</p>}
                   </div>
                   <div>
                     <label className="text-xs font-semibold text-slate-500 mb-1 block">Phone *</label>
-                    <input {...register(`guardians.${index}.phone`)} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" placeholder="Phone" />
+                    <input {...register(`guardians.${index}.phone`)} className={`w-full px-3 py-2 bg-white border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 ${errors.guardians?.[index]?.phone ? 'border-red-400' : 'border-slate-200'}`} placeholder="Phone" />
+                    {errors.guardians?.[index]?.phone && <p className="mt-1 text-xs text-red-600">{errors.guardians[index]?.phone?.message}</p>}
                   </div>
                 </div>
                 <label className="flex items-center gap-2">
@@ -401,55 +471,59 @@ export function StudentForm({ student, branches, sessions, sponsors, onSubmit, i
       </div>
 
       {/* Sponsors */}
-      {mode === 'edit' && (
-        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
-          <SectionHeader title={`Sponsor Mappings (${sponsorFields.length})`} sectionKey="sponsors" icon={() => <span className="text-sm font-bold">🤝</span>} isOpen={openSections.sponsors} />
-          {openSections.sponsors && (
-            <div className="p-6 space-y-4">
-              {sponsorFields.map((field, index) => (
-                <div key={field.id} className="p-4 rounded-2xl border border-slate-200 bg-slate-50/50 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-bold text-slate-700">Sponsor #{index + 1}</span>
-                    <button
-                      type="button"
-                      onClick={() => removeSponsor(index)}
-                      className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-rose-500 hover:bg-rose-50 transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+        <SectionHeader title={`Sponsor Mappings (${sponsorFields.length})`} sectionKey="sponsors" icon={() => <span className="text-sm font-bold">🤝</span>} isOpen={openSections.sponsors} />
+        {openSections.sponsors && (
+          <div className="p-6 space-y-4">
+            {sponsorFields.map((field, index) => (
+              <div key={field.id} className="p-4 rounded-2xl border border-slate-200 bg-slate-50/50 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-bold text-slate-700">Sponsor #{index + 1}</span>
+                  <button
+                    type="button"
+                    onClick={() => removeSponsor(index)}
+                    className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-rose-500 hover:bg-rose-50 transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-semibold text-slate-500 mb-1 block">Sponsor *</label>
+                    <select {...register(`sponsorMappings.${index}.sponsorId`)} className={`w-full px-3 py-2 bg-white border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 ${errors.sponsorMappings?.[index]?.sponsorId ? 'border-red-400' : 'border-slate-200'}`}>
+                      <option value="">Select sponsor</option>
+                      {sponsors.map((s) => (
+                        <option key={s.id} value={s.id}>{s.name}</option>
+                      ))}
+                    </select>
+                    {errors.sponsorMappings?.[index]?.sponsorId && <p className="mt-1 text-xs text-red-600">{errors.sponsorMappings[index]?.sponsorId?.message}</p>}
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <div>
-                      <label className="text-xs font-semibold text-slate-500 mb-1 block">Sponsor *</label>
-                      <select {...register(`sponsorMappings.${index}.sponsorId`)} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500">
-                        <option value="">Select sponsor</option>
-                        {sponsors.map((s) => (
-                          <option key={s.id} value={s.id}>{s.name}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="text-xs font-semibold text-slate-500 mb-1 block">Support Label</label>
-                      <input {...register(`sponsorMappings.${index}.supportLabel`)} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" placeholder="e.g. Monthly" />
-                    </div>
-                    <div>
-                      <label className="text-xs font-semibold text-slate-500 mb-1 block">Amount</label>
-                      <input type="number" {...register(`sponsorMappings.${index}.amount`, { valueAsNumber: true })} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" placeholder="0.00" />
-                    </div>
+                  <div>
+                    <label className="text-xs font-semibold text-slate-500 mb-1 block">Support Label</label>
+                    <input {...register(`sponsorMappings.${index}.supportLabel`)} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" placeholder="e.g. Monthly" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-slate-500 mb-1 block">Amount</label>
+                    <input type="number" step="0.01" {...register(`sponsorMappings.${index}.amount`, { valueAsNumber: true })} className={`w-full px-3 py-2 bg-white border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 ${errors.sponsorMappings?.[index]?.amount ? 'border-red-400' : 'border-slate-200'}`} placeholder="0.00" />
+                    {errors.sponsorMappings?.[index]?.amount && <p className="mt-1 text-xs text-red-600">{errors.sponsorMappings[index]?.amount?.message}</p>}
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-slate-500 mb-1 block">Currency</label>
+                    <input {...register(`sponsorMappings.${index}.currencyCode`)} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" placeholder="INR" />
                   </div>
                 </div>
-              ))}
-              <button
-                type="button"
-                onClick={() => appendSponsor({ sponsorId: '', supportLabel: '', amount: undefined })}
-                className="w-full py-3 rounded-xl border-2 border-dashed border-slate-200 text-sm font-bold text-slate-500 hover:border-emerald-300 hover:text-emerald-600 flex items-center justify-center gap-2 transition-colors"
-              >
-                <Plus className="w-4 h-4" /> Add Sponsor Mapping
-              </button>
-            </div>
-          )}
-        </div>
-      )}
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() => appendSponsor({ sponsorId: '', supportLabel: '', amount: undefined, currencyCode: 'INR' })}
+              className="w-full py-3 rounded-xl border-2 border-dashed border-slate-200 text-sm font-bold text-slate-500 hover:border-emerald-300 hover:text-emerald-600 flex items-center justify-center gap-2 transition-colors"
+            >
+              <Plus className="w-4 h-4" /> Add Sponsor Mapping
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* Notes */}
       <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">

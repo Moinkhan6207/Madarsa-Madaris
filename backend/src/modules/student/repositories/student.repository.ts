@@ -31,6 +31,14 @@ const studentDetailInclude = {
       createdAt: 'desc' as const,
     },
   },
+  documents: {
+    where: {
+      deletedAt: null,
+    },
+    orderBy: {
+      createdAt: 'desc' as const,
+    },
+  },
   history: {
     orderBy: {
       changedAt: 'desc' as const,
@@ -309,6 +317,16 @@ export class StudentRepository {
     });
   }
 
+  async listSponsors(tenantId: string) {
+    return this.prisma.sponsor.findMany({
+      where: {
+        tenantId,
+        deletedAt: null,
+      },
+      orderBy: [{ name: 'asc' }, { createdAt: 'desc' }],
+    });
+  }
+
   async findSponsorById(tenantId: string, sponsorId: string) {
     return this.prisma.sponsor.findFirst({
       where: {
@@ -431,6 +449,18 @@ export class StudentRepository {
     });
   }
 
+  async getStudentHistory(tenantId: string, studentId: string) {
+    return this.prisma.studentHistory.findMany({
+      where: {
+        tenantId,
+        studentId,
+      },
+      orderBy: {
+        changedAt: 'desc',
+      },
+    });
+  }
+
   private buildStudentListWhere(tenantId: string, query: StudentListQuery): Prisma.StudentWhereInput {
     return {
       tenantId,
@@ -455,7 +485,7 @@ export class StudentRepository {
                   mode: 'insensitive',
                 },
               },
-              {
+              ...( /\d/.test(query.search) ? [{
                 guardians: {
                   some: {
                     deletedAt: null,
@@ -464,7 +494,7 @@ export class StudentRepository {
                     },
                   },
                 },
-              },
+              }] : []),
             ],
           }
         : {}),
@@ -492,6 +522,33 @@ export class StudentRepository {
       },
     ];
   }
+
+  async createStudentDocument(data: Prisma.StudentDocumentUncheckedCreateInput) {
+    return this.prisma.studentDocument.create({
+      data,
+    });
+  }
+
+  async findStudentDocumentById(tenantId: string, documentId: string) {
+    return this.prisma.studentDocument.findFirst({
+      where: {
+        id: documentId,
+        tenantId,
+        deletedAt: null,
+      },
+    });
+  }
+
+  async softDeleteStudentDocument(documentId: string) {
+    return this.prisma.studentDocument.update({
+      where: {
+        id: documentId,
+      },
+      data: {
+        deletedAt: new Date(),
+      },
+    });
+  }
 }
 
 export type StudentDetailRecord = Prisma.StudentGetPayload<{
@@ -512,6 +569,7 @@ export type StudentListRecord = Prisma.StudentGetPayload<{
         guardians: true;
         sponsors: true;
         history: true;
+        documents: true;
       };
     };
   };

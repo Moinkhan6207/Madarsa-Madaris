@@ -1,4 +1,4 @@
-import { StudentGuardianRelation, StudentStatus } from '@prisma/client';
+import { StudentGuardianRelation, StudentStatus, StudentDocumentType } from '@prisma/client';
 import { z } from 'zod';
 
 const nullableTrimmedString = z
@@ -42,11 +42,14 @@ export const CreateStudentSchema = z.object({
   rollNumber: nullableTrimmedString,
   firstName: z.string().trim().min(2).max(100),
   lastName: nullableTrimmedString,
+  arabicName: nullableTrimmedString,
   gender: nullableTrimmedString,
   dateOfBirth: z.string().datetime().optional(),
+  bloodGroup: nullableTrimmedString,
   admissionDate: z.string().datetime().optional(),
   phone: nullableTrimmedString,
   email: z.string().trim().email().optional().or(z.literal('')).transform((value) => value || undefined),
+  identityNumber: nullableTrimmedString,
   addressLine1: nullableTrimmedString,
   addressLine2: nullableTrimmedString,
   city: nullableTrimmedString,
@@ -58,7 +61,9 @@ export const CreateStudentSchema = z.object({
   isNeedy: z.boolean().optional(),
   currentProgram: nullableTrimmedString,
   currentClass: nullableTrimmedString,
+  currentSection: nullableTrimmedString,
   leadSource: nullableTrimmedString,
+  photoUrl: nullableTrimmedString,
   notes: nullableTrimmedString,
   guardians: z.array(guardianSchema).max(10).optional(),
   sponsorMappings: z.array(sponsorMappingSchema).max(20).optional(),
@@ -104,4 +109,11 @@ export const StudentListQuerySchema = z.object({
     .optional()
     .default('createdAt'),
   sortOrder: z.enum(['asc', 'desc']).optional().default('desc'),
+});
+
+export const CreateDocumentSchema = z.object({
+  documentUrl: z.string().trim().url(),
+  documentType: z.nativeEnum(StudentDocumentType),
+  title: nullableTrimmedString,
+  notes: nullableTrimmedString,
 });

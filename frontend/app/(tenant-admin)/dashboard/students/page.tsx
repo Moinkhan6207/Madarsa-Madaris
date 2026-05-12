@@ -1,13 +1,15 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Plus, Users, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { useStudents } from '@/features/students/hooks/useStudents';
+import { useBranches } from '@/features/students/hooks/useReferenceData';
 import { StudentFilters } from '@/features/students/components/StudentFilters';
 import { StudentCard } from '@/features/students/components/StudentCard';
 import type { StudentListFilters } from '@/features/students/types/student';
+import { hasPermission } from '@/features/students/utils/permissions';
 
 function useFiltersFromQuery(): StudentListFilters {
   const params = useSearchParams();
@@ -29,8 +31,11 @@ export default function StudentsListPage() {
   const router = useRouter();
   const initialFilters = useFiltersFromQuery();
   const [filters, setFilters] = useState<StudentListFilters>(initialFilters);
+  const [draftFilters, setDraftFilters] = useState<StudentListFilters>(initialFilters);
+  const canCreate = hasPermission('student.create');
 
   const { data, isLoading, error } = useStudents(filters);
+  const { data: branches = [] } = useBranches();
 
   const updateQueryParams = useCallback(
     (next: StudentListFilters) => {
@@ -51,9 +56,17 @@ export default function StudentsListPage() {
     [router]
   );
 
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setFilters(draftFilters);
+      updateQueryParams(draftFilters);
+    }, 350);
+
+    return () => window.clearTimeout(timer);
+  }, [draftFilters, updateQueryParams]);
+
   const handleFilterChange = (next: StudentListFilters) => {
-    setFilters(next);
-    updateQueryParams(next);
+    setDraftFilters(next);
   };
 
   const goToPage = (page: number) => {
@@ -68,12 +81,14 @@ export default function StudentsListPage() {
           <h1 className="text-2xl font-black text-slate-900 tracking-tight">Students</h1>
           <p className="text-sm font-medium text-slate-400 mt-1">Manage all student records and lifecycle</p>
         </div>
-        <Link
-          href="/dashboard/students/create"
-          className="inline-flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-600/10 transition-all hover:-translate-y-0.5"
-        >
-          <Plus className="w-4 h-4" /> Add Student
-        </Link>
+        {canCreate && (
+          <Link
+            href="/dashboard/students/create"
+            className="inline-flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-600/10 transition-all hover:-translate-y-0.5"
+          >
+            <Plus className="w-4 h-4" /> Add Student
+          </Link>
+        )}
       </div>
 
       {/* Stats Bar */}
@@ -99,7 +114,7 @@ export default function StudentsListPage() {
       </div>
 
       {/* Filters */}
-      <StudentFilters filters={filters} onChange={handleFilterChange} branches={[]} />
+      <StudentFilters filters={draftFilters} onChange={handleFilterChange} branches={branches} />
 
       {/* Content */}
       {isLoading ? (

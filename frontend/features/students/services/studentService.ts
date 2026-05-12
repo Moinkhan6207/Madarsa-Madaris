@@ -16,43 +16,85 @@ import type {
   StudentHistory,
 } from '../types/student';
 
+interface ApiEnvelope<T> {
+  success: boolean;
+  data: T;
+  timestamp?: string;
+}
+
+interface PaginatedEnvelope<T> {
+  data: T[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+  };
+}
+
 export const studentService = {
-  list: (params?: StudentListFilters) =>
-    apiClient.get<PaginatedStudentsResponse>('/tenant/students', { params }),
+  list: async (params?: StudentListFilters): Promise<PaginatedStudentsResponse> => {
+    const res = await apiClient.get<ApiEnvelope<PaginatedEnvelope<Student>>>('/tenant/students', { params });
+    return {
+      students: res.data.data,
+      total: res.data.pagination.total,
+      page: res.data.pagination.page,
+      limit: res.data.pagination.limit,
+      totalPages: res.data.pagination.totalPages,
+    };
+  },
 
-  getById: (id: string) =>
-    apiClient.get<{ student: Student }>(`/tenant/students/${id}`),
+  getById: async (id: string): Promise<Student> => {
+    const res = await apiClient.get<ApiEnvelope<Student>>(`/tenant/students/${id}`);
+    return res.data;
+  },
 
-  create: (data: CreateStudentPayload) =>
-    apiClient.post<{ student: Student }>('/tenant/students', data),
+  create: async (data: CreateStudentPayload): Promise<Student> => {
+    const res = await apiClient.post<ApiEnvelope<Student>>('/tenant/students', data);
+    return res.data;
+  },
 
-  update: (id: string, data: UpdateStudentPayload) =>
-    apiClient.put<{ student: Student }>(`/tenant/students/${id}`, data),
+  update: async (id: string, data: UpdateStudentPayload): Promise<Student> => {
+    const res = await apiClient.put<ApiEnvelope<Student>>(`/tenant/students/${id}`, data);
+    return res.data;
+  },
 
-  delete: (id: string) =>
-    apiClient.delete<{ message: string }>(`/tenant/students/${id}`),
+  delete: (id: string) => apiClient.delete<void>(`/tenant/students/${id}`),
 
-  changeStatus: (id: string, data: ChangeStatusPayload) =>
-    apiClient.patch<{ student: Student }>(`/tenant/students/${id}/status`, data),
+  changeStatus: async (id: string, data: ChangeStatusPayload): Promise<Student> => {
+    const res = await apiClient.patch<ApiEnvelope<Student>>(`/tenant/students/${id}/status`, data);
+    return res.data;
+  },
 
-  addGuardian: (studentId: string, data: GuardianInput) =>
-    apiClient.post<{ guardian: StudentGuardian }>(`/tenant/students/${studentId}/guardians`, data),
+  addGuardian: async (studentId: string, data: GuardianInput): Promise<StudentGuardian> => {
+    const res = await apiClient.post<ApiEnvelope<StudentGuardian>>(`/tenant/students/${studentId}/guardians`, data);
+    return res.data;
+  },
 
-  updateGuardian: (guardianId: string, data: UpdateGuardianPayload) =>
-    apiClient.put<{ guardian: StudentGuardian }>(`/tenant/guardians/${guardianId}`, data),
+  updateGuardian: async (guardianId: string, data: UpdateGuardianPayload): Promise<StudentGuardian> => {
+    const res = await apiClient.put<ApiEnvelope<StudentGuardian>>(`/tenant/guardians/${guardianId}`, data);
+    return res.data;
+  },
 
-  deleteGuardian: (guardianId: string) =>
-    apiClient.delete<{ message: string }>(`/tenant/guardians/${guardianId}`),
+  deleteGuardian: (guardianId: string) => apiClient.delete<void>(`/tenant/guardians/${guardianId}`),
 
-  createSponsor: (data: CreateSponsorPayload) =>
-    apiClient.post<{ sponsor: Sponsor }>('/tenant/sponsors', data),
+  createSponsor: async (data: CreateSponsorPayload): Promise<Sponsor> => {
+    const res = await apiClient.post<ApiEnvelope<Sponsor>>('/tenant/sponsors', data);
+    return res.data;
+  },
 
-  mapSponsor: (studentId: string, data: SponsorMappingInput) =>
-    apiClient.post<{ mapping: StudentSponsorMapping }>(`/tenant/students/${studentId}/sponsors`, data),
+  mapSponsor: async (studentId: string, data: SponsorMappingInput): Promise<StudentSponsorMapping> => {
+    const res = await apiClient.post<ApiEnvelope<StudentSponsorMapping>>(`/tenant/students/${studentId}/sponsors`, data);
+    return res.data;
+  },
 
   unlinkSponsor: (studentId: string, sponsorId: string) =>
-    apiClient.delete<{ message: string }>(`/tenant/students/${studentId}/sponsors/${sponsorId}`),
+    apiClient.delete<void>(`/tenant/students/${studentId}/sponsors/${sponsorId}`),
 
-  getHistory: (studentId: string) =>
-    apiClient.get<{ history: StudentHistory[] }>(`/tenant/students/${studentId}/history`),
+  getHistory: async (studentId: string): Promise<StudentHistory[]> => {
+    const res = await apiClient.get<ApiEnvelope<StudentHistory[]>>(`/tenant/students/${studentId}/history`);
+    return res.data;
+  },
 };

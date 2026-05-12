@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { studentService } from './service';
+import { studentService } from '../services';
 import type {
   StudentListFilters,
   CreateStudentPayload,
@@ -8,7 +8,7 @@ import type {
   GuardianInput,
   UpdateGuardianPayload,
   SponsorMappingInput,
-} from './types';
+} from '../types';
 
 const STUDENTS_KEY = 'students';
 const STUDENT_DETAIL_KEY = 'student';
@@ -170,5 +170,31 @@ export function useStudentHistory(studentId: string) {
     },
     enabled: !!studentId,
     staleTime: 30 * 1000,
+  });
+}
+
+export function useAddDocument(studentId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: { documentUrl: string; documentType: string; title?: string; notes?: string }) => {
+      const res = await studentService.addDocument(studentId, data);
+      return res.data.document;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [STUDENT_DETAIL_KEY, studentId] });
+    },
+  });
+}
+
+export function useDeleteDocument(studentId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (documentId: string) => {
+      await studentService.deleteDocument(studentId, documentId);
+      return documentId;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [STUDENT_DETAIL_KEY, studentId] });
+    },
   });
 }

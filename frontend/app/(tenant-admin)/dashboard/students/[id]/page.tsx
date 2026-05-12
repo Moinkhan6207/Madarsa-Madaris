@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import {
@@ -18,8 +18,10 @@ import {
   Heart,
   GraduationCap,
   X,
+  FileText,
 } from 'lucide-react';
 import { useStudent, useDeleteStudent, useChangeStudentStatus, useStudentHistory } from '@/features/students/hooks/useStudents';
+import { useSponsors } from '@/features/students/hooks/useReferenceData';
 import { StatusBadge } from '@/features/students/components/StatusBadge';
 import { HistoryTimeline } from '@/features/students/components/HistoryTimeline';
 import { LifecycleModal } from '@/features/students/components/LifecycleModal';
@@ -27,7 +29,7 @@ import { GuardianSection } from '@/features/students/components/GuardianSection'
 import { SponsorSection } from '@/features/students/components/SponsorSection';
 import { useAddGuardian, useUpdateGuardian, useDeleteGuardian } from '@/features/students/hooks/useStudents';
 import { useMapSponsor, useUnlinkSponsor } from '@/features/students/hooks/useStudents';
-import type { StudentGuardian, GuardianInput, UpdateGuardianPayload, SponsorMappingInput } from '@/features/students/types/student';
+import { hasPermission } from '@/features/students/utils/permissions';
 
 export default function StudentDetailPage() {
   const params = useParams();
@@ -36,6 +38,7 @@ export default function StudentDetailPage() {
 
   const { data: student, isLoading, error } = useStudent(id);
   const { data: history } = useStudentHistory(id);
+  const { data: sponsors = [] } = useSponsors();
   const deleteMutation = useDeleteStudent();
   const statusMutation = useChangeStudentStatus(id);
   const addGuardianMutation = useAddGuardian(id);
@@ -47,6 +50,11 @@ export default function StudentDetailPage() {
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const canUpdate = hasPermission('student.update');
+  const canDelete = hasPermission('student.delete');
+  const canChangeStatus = hasPermission('student.status.update');
+  const canManageGuardians = hasPermission('student.guardian.manage');
+  const canManageSponsors = hasPermission('student.sponsor.manage');
 
   const showToast = (type: 'success' | 'error', message: string) => {
     setToast({ type, message });
@@ -123,22 +131,27 @@ export default function StudentDetailPage() {
         <div className="flex items-center gap-2">
           <Link
             href={`/dashboard/students/${id}/edit`}
+            aria-disabled={!canUpdate}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 transition-colors"
           >
             <Pencil className="w-4 h-4" /> Edit
           </Link>
-          <button
-            onClick={() => setShowStatusModal(true)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-600/10 transition-colors"
-          >
-            Change Status
-          </button>
-          <button
-            onClick={() => setShowDeleteModal(true)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-rose-600 bg-white border border-rose-100 hover:bg-rose-50 transition-colors"
-          >
-            <Trash2 className="w-4 h-4" /> Delete
-          </button>
+          {canChangeStatus && (
+            <button
+              onClick={() => setShowStatusModal(true)}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-600/10 transition-colors"
+            >
+              Change Status
+            </button>
+          )}
+          {canDelete && (
+            <button
+              onClick={() => setShowDeleteModal(true)}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-rose-600 bg-white border border-rose-100 hover:bg-rose-50 transition-colors"
+            >
+              <Trash2 className="w-4 h-4" /> Archive
+            </button>
+          )}
         </div>
       </div>
 
@@ -218,19 +231,19 @@ export default function StudentDetailPage() {
         isAdding={addGuardianMutation.isPending}
         isUpdating={updateGuardianMutation.isPending}
         isDeleting={deleteGuardianMutation.isPending}
-        canManage={true}
+        canManage={canManageGuardians}
       />
 
       {/* Sponsors */}
       <SponsorSection
         mappings={student.sponsors?.filter((s) => !s.deletedAt) ?? []}
-        sponsors={[]}
+        sponsors={sponsors}
         studentId={id}
         onMap={(data) => mapSponsorMutation.mutateAsync(data as any).then(() => showToast('success', 'Sponsor linked'))}
         onUnlink={(sponsorId) => unlinkSponsorMutation.mutateAsync(sponsorId).then(() => showToast('success', 'Sponsor unlinked'))}
         isMapping={mapSponsorMutation.isPending}
         isUnlinking={unlinkSponsorMutation.isPending}
-        canManage={true}
+        canManage={canManageSponsors}
       />
 
       {/* History */}
@@ -242,7 +255,7 @@ export default function StudentDetailPage() {
       {/* Status Modal */}
       <LifecycleModal
         currentStatus={student.status}
-        isOpen={showStatusModal}
+        isOpen={showStatusModal && canChangeStatus}
         onClose={() => setShowStatusModal(false)}
         onConfirm={handleStatusChange}
         isLoading={statusMutation.isPending}
@@ -260,7 +273,7 @@ export default function StudentDetailPage() {
               <h2 className="text-lg font-black text-slate-900">Delete Student?</h2>
             </div>
             <p className="text-sm text-slate-500 mb-6">
-              This will soft-delete the student record. The data will remain in the system but be hidden from most views. This action can be reversed by an admin.
+              This will archive the student record using soft delete. The data remains in the system but is hidden from default lists.
             </p>
             <div className="flex gap-3">
               <button
@@ -275,7 +288,7 @@ export default function StudentDetailPage() {
                 className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-bold text-white bg-rose-600 hover:bg-rose-700 disabled:opacity-50 transition-colors"
               >
                 {deleteMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+                {deleteMutation.isPending ? 'Archiving...' : 'Archive'}
               </button>
             </div>
           </div>

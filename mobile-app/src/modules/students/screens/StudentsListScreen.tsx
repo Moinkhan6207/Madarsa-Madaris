@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,49 +7,47 @@ import {
   RefreshControl,
   TextInput,
   TouchableOpacity,
-  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import Header from '@/components/layout/Header';
 import { Skeleton } from '@/components/ui/Skeleton';
 import Card from '@/components/ui/Card';
 import { colors, radius, shadows, spacing, typography } from '@/theme';
-import { studentService } from '@/features/students/service';
-import { StudentCard } from '@/features/students/components/StudentCard';
-import type { Student, StudentStatus, StudentListFilters } from '@/features/students/types';
-import { STATUS_DISPLAY } from '@/features/students/types';
+import { studentService } from '@/modules/students/services';
+import { StudentCard } from '@/modules/students/components/StudentCard';
+import DashboardStats from '@/modules/students/components/DashboardStats';
+import StudentFilters from '@/modules/students/components/StudentFilters';
+import { useBranches } from '@/modules/students/utils/reference';
+import type { Student, StudentListFilters } from '@/modules/students/types';
 import type { StudentsStackParamList } from '@/navigation/types';
 
 type NavigationProp = NativeStackNavigationProp<StudentsStackParamList>;
 
-const statusFilters: { label: string; value: StudentStatus | 'all'; color: string }[] = [
-  { label: 'All', value: 'all', color: colors.slate500 },
-  { label: 'Lead', value: 'LEAD', color: colors.slate600 },
-  { label: 'Applied', value: 'APPLIED', color: colors.blue500 },
-  { label: 'Review', value: 'UNDER_REVIEW', color: colors.amber500 },
-  { label: 'Admitted', value: 'ADMITTED', color: colors.purple500 },
-  { label: 'Active', value: 'ACTIVE', color: colors.primary600 },
-  { label: 'Dropped', value: 'DROPPED', color: colors.red500 },
-  { label: 'Alumni', value: 'ALUMNI', color: colors.slate500 },
-];
-
 export default function StudentsListScreen() {
   const navigation = useNavigation<NavigationProp>();
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<StudentStatus | 'all'>('all');
-  const [page, setPage] = useState(1);
-
-  const filters: StudentListFilters = {
-    page,
+  const [filters, setFilters] = useState<StudentListFilters>({
+    page: 1,
     limit: 20,
-    search: search.trim() || undefined,
-    status: statusFilter === 'all' ? undefined : statusFilter,
-  };
+    search: undefined,
+  });
+  
+  // Local state for search to debounce
+  const [searchInput, setSearchInput] = useState('');
+
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setFilters(prev => ({ ...prev, search: searchInput.trim() || undefined, page: 1 }));
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
+  const { data: branches = [] } = useBranches();
 
   const { data, isLoading, isFetching, refetch } = useQuery({
     queryKey: ['students', filters],
@@ -59,73 +57,82 @@ export default function StudentsListScreen() {
     },
   });
 
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+    }, [refetch])
+  );
+
   const handleStudentPress = useCallback((student: Student) => {
     navigation.navigate('StudentDetail', { studentId: student.id });
   }, [navigation]);
 
   const renderItem = useCallback(({ item }: { item: Student }) => (
-    <StudentCard student={item} onPress={handleStudentPress} />
+    <View style={styles.itemWrapper}>
+      <StudentCard student={item} onPress={handleStudentPress} />
+    </View>
   ), [handleStudentPress]);
 
-  return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <Header title="Students" subtitle="Manage student records" />
+  const activeCount = data?.students?.filter(s => s.status === 'ACTIVE').length || 0;
 
-      {/* Search Bar */}
+  const renderHeader = () => (
+    <View style={styles.headerContainer}>
+      <DashboardStats 
+        total={data?.total || '-'}
+        active={activeCount}
+        pages={data?.totalPages || '-'}
+        currentPage={data?.page || '-'}
+      />
+    </View>
+  );
+
+  const renderStickyFilters = () => (
+    <View style={styles.stickyHeader}>
       <View style={styles.searchBar}>
         <Ionicons name="search-outline" size={18} color={colors.slate400} />
         <TextInput
           style={styles.searchInput}
           placeholder="Search name, admission #, phone..."
-          value={search}
-          onChangeText={(text) => { setSearch(text); setPage(1); }}
+          value={searchInput}
+          onChangeText={setSearchInput}
           placeholderTextColor={colors.slate400}
         />
-        {search.length > 0 && (
-          <TouchableOpacity onPress={() => { setSearch(''); setPage(1); }}>
+        {searchInput.length > 0 && (
+          <TouchableOpacity onPress={() => setSearchInput('')}>
             <Ionicons name="close-circle" size={18} color={colors.slate400} />
           </TouchableOpacity>
         )}
       </View>
 
-      {/* Status Filters */}
-      <FlatList
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        data={statusFilters}
-        keyExtractor={(item) => item.value}
-        contentContainerStyle={styles.filterList}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={[
-              styles.filterChip,
-              statusFilter === item.value && { backgroundColor: item.color + '15', borderColor: item.color },
-            ]}
-            onPress={() => { setStatusFilter(item.value); setPage(1); }}
-          >
-            <Text style={[
-              styles.filterChipText,
-              statusFilter === item.value && { color: item.color, fontWeight: '800' },
-            ]}>
-              {item.label}
-            </Text>
-          </TouchableOpacity>
-        )}
+      <StudentFilters 
+        filters={filters} 
+        onChange={setFilters} 
+        branches={branches} 
       />
+    </View>
+  );
 
-      {/* Content */}
+  return (
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <Header title="Students" subtitle="Manage student records" />
+      
+      {renderStickyFilters()}
+
       {isLoading ? (
         <View style={styles.list}>
+          {renderHeader()}
           {Array.from({ length: 6 }).map((_, i) => (
-            <Card key={i} padding="lg" style={styles.skeletonCard}>
-              <View style={styles.skeletonRow}>
-                <Skeleton circle width={48} height={48} />
-                <View style={styles.skeletonInfo}>
-                  <Skeleton width={160} height={14} />
-                  <Skeleton width={100} height={10} style={{ marginTop: spacing['2'] }} />
+            <View key={i} style={styles.itemWrapper}>
+              <Card padding="lg" style={styles.skeletonCard}>
+                <View style={styles.skeletonRow}>
+                  <Skeleton circle width={48} height={48} />
+                  <View style={styles.skeletonInfo}>
+                    <Skeleton width={160} height={14} />
+                    <Skeleton width={100} height={10} style={{ marginTop: spacing['2'] }} />
+                  </View>
                 </View>
-              </View>
-            </Card>
+              </Card>
+            </View>
           ))}
         </View>
       ) : (
@@ -133,6 +140,7 @@ export default function StudentsListScreen() {
           data={data?.students ?? []}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
+          ListHeaderComponent={renderHeader}
           contentContainerStyle={styles.list}
           refreshControl={
             <RefreshControl refreshing={isFetching} onRefresh={() => refetch()} tintColor={colors.primary600} />
@@ -142,25 +150,31 @@ export default function StudentsListScreen() {
               <Ionicons name="people-outline" size={48} color={colors.slate300} />
               <Text style={styles.emptyTitle}>No students found</Text>
               <Text style={styles.emptySub}>Try adjusting your filters or add a new student.</Text>
+              <TouchableOpacity
+                style={styles.retryBtn}
+                onPress={() => refetch()}
+              >
+                <Text style={styles.retryBtnText}>Retry</Text>
+              </TouchableOpacity>
             </View>
           }
           ListFooterComponent={
             data && data.totalPages > 1 ? (
               <View style={styles.pagination}>
                 <TouchableOpacity
-                  disabled={page <= 1}
-                  style={[styles.pageBtn, page <= 1 && styles.pageBtnDisabled]}
-                  onPress={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={(filters.page || 1) <= 1}
+                  style={[styles.pageBtn, (filters.page || 1) <= 1 && styles.pageBtnDisabled]}
+                  onPress={() => setFilters(f => ({ ...f, page: Math.max(1, (f.page || 1) - 1) }))}
                 >
-                  <Ionicons name="chevron-back" size={16} color={page <= 1 ? colors.slate300 : colors.slate600} />
+                  <Ionicons name="chevron-back" size={16} color={(filters.page || 1) <= 1 ? colors.slate300 : colors.slate600} />
                 </TouchableOpacity>
                 <Text style={styles.pageText}>Page {data.page} of {data.totalPages}</Text>
                 <TouchableOpacity
-                  disabled={page >= data.totalPages}
-                  style={[styles.pageBtn, page >= data.totalPages && styles.pageBtnDisabled]}
-                  onPress={() => setPage((p) => Math.min(data.totalPages, p + 1))}
+                  disabled={(filters.page || 1) >= data.totalPages}
+                  style={[styles.pageBtn, (filters.page || 1) >= data.totalPages && styles.pageBtnDisabled]}
+                  onPress={() => setFilters(f => ({ ...f, page: Math.min(data.totalPages, (f.page || 1) + 1) }))}
                 >
-                  <Ionicons name="chevron-forward" size={16} color={page >= data.totalPages ? colors.slate300 : colors.slate600} />
+                  <Ionicons name="chevron-forward" size={16} color={(filters.page || 1) >= data.totalPages ? colors.slate300 : colors.slate600} />
                 </TouchableOpacity>
               </View>
             ) : null
@@ -168,7 +182,6 @@ export default function StudentsListScreen() {
         />
       )}
 
-      {/* FAB */}
       <TouchableOpacity
         style={styles.fab}
         onPress={() => navigation.navigate('StudentCreate')}
@@ -185,12 +198,20 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.slate50,
   },
+  headerContainer: {
+    paddingTop: spacing['3'],
+  },
+  stickyHeader: {
+    backgroundColor: colors.slate50,
+    zIndex: 10,
+    paddingTop: spacing['2'],
+  },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.white,
     marginHorizontal: spacing['4'],
-    marginTop: spacing['3'],
+    marginBottom: spacing['3'],
     paddingHorizontal: spacing['4'],
     paddingVertical: spacing['3'],
     borderRadius: radius['2xl'],
@@ -204,29 +225,12 @@ const styles = StyleSheet.create({
     color: colors.slate800,
     paddingVertical: 0,
   },
-  filterList: {
-    paddingHorizontal: spacing['4'],
-    paddingVertical: spacing['3'],
-    gap: spacing['2'],
-  },
-  filterChip: {
-    paddingHorizontal: spacing['3'],
-    paddingVertical: spacing['1.5'],
-    borderRadius: radius.pill,
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.slate200,
-    marginRight: spacing['2'],
-  },
-  filterChipText: {
-    ...typography.xs,
-    color: colors.slate600,
-    fontWeight: '600',
-  },
   list: {
-    paddingHorizontal: spacing['4'],
     paddingBottom: spacing['20'],
     gap: spacing['3'],
+  },
+  itemWrapper: {
+    paddingHorizontal: spacing['4'],
   },
   skeletonCard: {
     marginBottom: spacing['3'],
@@ -254,6 +258,17 @@ const styles = StyleSheet.create({
     ...typography.small,
     color: colors.slate400,
     textAlign: 'center',
+  },
+  retryBtn: {
+    marginTop: spacing['4'],
+    paddingHorizontal: spacing['4'],
+    paddingVertical: spacing['2'],
+    backgroundColor: colors.primary50,
+    borderRadius: radius.lg,
+  },
+  retryBtnText: {
+    ...typography.smallBold,
+    color: colors.primary700,
   },
   pagination: {
     flexDirection: 'row',

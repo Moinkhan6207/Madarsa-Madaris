@@ -48,6 +48,16 @@ export const StudentCard: React.FC<StudentCardProps> = React.memo(({ student, on
               <Text style={styles.orphanText}>Orphan</Text>
             </View>
           )}
+          {student.isSponsored && (
+            <View style={[styles.tag, styles.sponsoredTag]}>
+              <Text style={styles.sponsoredText}>Sponsored</Text>
+            </View>
+          )}
+          {student.isNeedy && (
+            <View style={[styles.tag, styles.needyTag]}>
+              <Text style={styles.needyText}>Needy</Text>
+            </View>
+          )}
         </View>
       </Card>
     </TouchableOpacity>
@@ -121,6 +131,22 @@ const styles = StyleSheet.create({
   orphanText: {
     ...typography.xs,
     color: colors.amber600,
+    fontWeight: '700',
+  },
+  sponsoredTag: {
+    backgroundColor: colors.emerald50,
+  },
+  sponsoredText: {
+    ...typography.xs,
+    color: colors.emerald600,
+    fontWeight: '700',
+  },
+  needyTag: {
+    backgroundColor: colors.purple50,
+  },
+  needyText: {
+    ...typography.xs,
+    color: colors.purple600,
     fontWeight: '700',
   },
 });

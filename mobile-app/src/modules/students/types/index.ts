@@ -119,6 +119,27 @@ export interface StudentHistory {
   createdAt: string;
 }
 
+export type StudentDocumentType = 
+  | 'ID_PROOF'
+  | 'MEDICAL_RECORD'
+  | 'ADMISSION_FORM'
+  | 'CERTIFICATE'
+  | 'OTHER';
+
+export interface StudentDocument {
+  id: string;
+  tenantId: string;
+  studentId: string;
+  documentUrl: string;
+  documentType: StudentDocumentType;
+  title?: string | null;
+  notes?: string | null;
+  uploadedAt: string;
+  deletedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Student {
   id: string;
   tenantId: string;
@@ -129,11 +150,14 @@ export interface Student {
   firstName: string;
   lastName?: string | null;
   fullName: string;
+  arabicName?: string | null;
   gender?: string | null;
   dateOfBirth?: string | null;
+  bloodGroup?: string | null;
   admissionDate: string;
   phone?: string | null;
   email?: string | null;
+  identityNumber?: string | null;
   addressLine1?: string | null;
   addressLine2?: string | null;
   city?: string | null;
@@ -146,7 +170,9 @@ export interface Student {
   isSponsored: boolean;
   currentProgram?: string | null;
   currentClass?: string | null;
+  currentSection?: string | null;
   leadSource?: string | null;
+  photoUrl?: string | null;
   notes?: string | null;
   deletedAt?: string | null;
   createdAt: string;
@@ -156,10 +182,12 @@ export interface Student {
   guardians: StudentGuardian[];
   sponsors: StudentSponsorMapping[];
   history?: StudentHistory[];
+  documents?: StudentDocument[];
   _count?: {
     guardians: number;
     sponsors: number;
     history: number;
+    documents?: number;
   };
 }
 
@@ -169,11 +197,14 @@ export interface CreateStudentPayload {
   rollNumber?: string;
   firstName: string;
   lastName?: string;
+  arabicName?: string;
   gender?: string;
   dateOfBirth?: string;
+  bloodGroup?: string;
   admissionDate?: string;
   phone?: string;
   email?: string;
+  identityNumber?: string;
   addressLine1?: string;
   addressLine2?: string;
   city?: string;
@@ -184,7 +215,9 @@ export interface CreateStudentPayload {
   isNeedy?: boolean;
   currentProgram?: string;
   currentClass?: string;
+  currentSection?: string;
   leadSource?: string;
+  photoUrl?: string;
   notes?: string;
   guardians?: GuardianInput[];
   sponsorMappings?: SponsorMappingInput[];
@@ -196,11 +229,14 @@ export interface UpdateStudentPayload {
   rollNumber?: string;
   firstName?: string;
   lastName?: string;
+  arabicName?: string;
   gender?: string;
   dateOfBirth?: string;
+  bloodGroup?: string;
   admissionDate?: string;
   phone?: string;
   email?: string;
+  identityNumber?: string;
   addressLine1?: string;
   addressLine2?: string;
   city?: string;
@@ -211,7 +247,9 @@ export interface UpdateStudentPayload {
   isNeedy?: boolean;
   currentProgram?: string;
   currentClass?: string;
+  currentSection?: string;
   leadSource?: string;
+  photoUrl?: string;
   notes?: string;
   sponsorMappings?: SponsorMappingInput[];
 }

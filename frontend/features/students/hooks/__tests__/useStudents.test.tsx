@@ -49,7 +49,7 @@ describe('useStudents hooks', () => {
   describe('useStudent', () => {
     it('fetches a single student', async () => {
       const student = { id: '1', firstName: 'Ali', lastName: 'Khan' };
-      (studentService.getById as jest.Mock).mockResolvedValue({ student });
+      (studentService.getById as jest.Mock).mockResolvedValue(student);
 
       const { result } = renderHook(() => useStudent('1'), { wrapper: createWrapper() });
 
@@ -70,20 +70,20 @@ describe('useStudents hooks', () => {
   describe('useCreateStudent', () => {
     it('creates a student and invalidates list', async () => {
       const student = { id: '1', firstName: 'Ali' };
-      (studentService.create as jest.Mock).mockResolvedValue({ student });
+      (studentService.create as jest.Mock).mockResolvedValue(student);
 
       const { result } = renderHook(() => useCreateStudent(), { wrapper: createWrapper() });
 
-      await result.current.mutateAsync({ firstName: 'Ali', lastName: 'Khan', gender: 'MALE', dateOfBirth: '2000-01-01', branchId: 'b1' });
+      await result.current.mutateAsync({ firstName: 'Ali', lastName: 'Khan', gender: 'male', dateOfBirth: '2000-01-01', branchId: 'b1' });
 
-      expect(studentService.create).toHaveBeenCalledWith({ firstName: 'Ali', lastName: 'Khan', gender: 'MALE', dateOfBirth: '2000-01-01', branchId: 'b1' });
+      expect(studentService.create).toHaveBeenCalledWith({ firstName: 'Ali', lastName: 'Khan', gender: 'male', dateOfBirth: '2000-01-01', branchId: 'b1' });
     });
   });
 
   describe('useUpdateStudent', () => {
     it('updates a student', async () => {
       const student = { id: '1', firstName: 'Ali Updated' };
-      (studentService.update as jest.Mock).mockResolvedValue({ student });
+      (studentService.update as jest.Mock).mockResolvedValue(student);
 
       const { result } = renderHook(() => useUpdateStudent('1'), { wrapper: createWrapper() });
 
@@ -107,21 +107,21 @@ describe('useStudents hooks', () => {
 
   describe('useChangeStudentStatus', () => {
     it('changes student status', async () => {
-      const student = { id: '1', status: 'INACTIVE' };
-      (studentService.changeStatus as jest.Mock).mockResolvedValue({ student });
+      const student = { id: '1', status: 'DROPPED' };
+      (studentService.changeStatus as jest.Mock).mockResolvedValue(student);
 
       const { result } = renderHook(() => useChangeStudentStatus('1'), { wrapper: createWrapper() });
 
-      await result.current.mutateAsync({ status: 'DROPPED', reason: 'Test' });
+      await result.current.mutateAsync({ status: 'DROPPED', notes: 'Test' });
 
-      expect(studentService.changeStatus).toHaveBeenCalledWith('1', { status: 'DROPPED', reason: 'Test' });
+      expect(studentService.changeStatus).toHaveBeenCalledWith('1', { status: 'DROPPED', notes: 'Test' });
     });
   });
 
   describe('useAddGuardian', () => {
     it('adds a guardian', async () => {
       const guardian = { id: 'g1', relation: 'FATHER', fullName: 'Khan' };
-      (studentService.addGuardian as jest.Mock).mockResolvedValue({ guardian });
+      (studentService.addGuardian as jest.Mock).mockResolvedValue(guardian);
 
       const { result } = renderHook(() => useAddGuardian('1'), { wrapper: createWrapper() });
 
@@ -134,7 +134,7 @@ describe('useStudents hooks', () => {
   describe('useUpdateGuardian', () => {
     it('updates a guardian', async () => {
       const guardian = { id: 'g1', fullName: 'Khan Updated' };
-      (studentService.updateGuardian as jest.Mock).mockResolvedValue({ guardian });
+      (studentService.updateGuardian as jest.Mock).mockResolvedValue(guardian);
 
       const { result } = renderHook(() => useUpdateGuardian('1'), { wrapper: createWrapper() });
 
@@ -159,7 +159,7 @@ describe('useStudents hooks', () => {
   describe('useMapSponsor', () => {
     it('maps a sponsor', async () => {
       const mapping = { id: 'm1', sponsorId: 's1' };
-      (studentService.mapSponsor as jest.Mock).mockResolvedValue({ mapping });
+      (studentService.mapSponsor as jest.Mock).mockResolvedValue(mapping);
 
       const { result } = renderHook(() => useMapSponsor('1'), { wrapper: createWrapper() });
 
@@ -184,7 +184,7 @@ describe('useStudents hooks', () => {
   describe('useStudentHistory', () => {
     it('fetches student history', async () => {
       const history = [{ id: 'h1', event: 'CREATED' as const, studentId: '1' }];
-      (studentService.getHistory as jest.Mock).mockResolvedValue({ history });
+      (studentService.getHistory as jest.Mock).mockResolvedValue(history);
 
       const { result } = renderHook(() => useStudentHistory('1'), { wrapper: createWrapper() });
 
@@ -193,7 +193,7 @@ describe('useStudents hooks', () => {
     });
 
     it('does not fetch when studentId is empty', () => {
-      (studentService.getHistory as jest.Mock).mockResolvedValue({ history: [] });
+      (studentService.getHistory as jest.Mock).mockResolvedValue([]);
 
       const { result } = renderHook(() => useStudentHistory(''), { wrapper: createWrapper() });
 

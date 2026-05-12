@@ -58,11 +58,14 @@ export class StudentService {
             firstName: sanitized.firstName,
             lastName: sanitized.lastName,
             fullName: this.buildFullName(sanitized.firstName, sanitized.lastName),
+            arabicName: sanitized.arabicName,
             gender: sanitized.gender,
             dateOfBirth: this.toDate(sanitized.dateOfBirth),
+            bloodGroup: sanitized.bloodGroup,
             admissionDate: this.toDate(sanitized.admissionDate) ?? new Date(),
             phone: sanitized.phone,
             email: sanitized.email,
+            identityNumber: sanitized.identityNumber,
             addressLine1: sanitized.addressLine1,
             addressLine2: sanitized.addressLine2,
             city: sanitized.city,
@@ -75,7 +78,9 @@ export class StudentService {
             isSponsored: Boolean(sanitized.sponsorMappings?.length),
             currentProgram: sanitized.currentProgram,
             currentClass: sanitized.currentClass,
+            currentSection: sanitized.currentSection,
             leadSource: sanitized.leadSource,
+            photoUrl: sanitized.photoUrl,
             notes: sanitized.notes,
           });
 
@@ -153,7 +158,7 @@ export class StudentService {
           });
 
           return repository.findStudentById(tenantId, studentRecord.id);
-        });
+        }, { maxWait: 15000, timeout: 30000 });
 
         await this.statsService.clearCache(tenantId);
         if (!student) {
@@ -192,6 +197,17 @@ export class StudentService {
     }
 
     return student;
+  }
+
+  async getStudentHistory(tenantId: string, id: string) {
+    const repository = new StudentRepository(this.prisma);
+    const student = await repository.findStudentBaseById(tenantId, id);
+
+    if (!student) {
+      throw new AppError('Student not found', 404, 'STUDENT_NOT_FOUND');
+    }
+
+    return repository.getStudentHistory(tenantId, id);
   }
 
   async updateStudent(tenantId: string, actorUserId: string, id: string, input: UpdateStudentInput) {
@@ -241,14 +257,17 @@ export class StudentService {
             }
           : {}),
         ...(typeof sanitized.gender !== 'undefined' ? { gender: sanitized.gender } : {}),
+        ...(typeof sanitized.arabicName !== 'undefined' ? { arabicName: sanitized.arabicName } : {}),
         ...(typeof sanitized.dateOfBirth !== 'undefined'
           ? { dateOfBirth: this.toDate(sanitized.dateOfBirth) }
           : {}),
+        ...(typeof sanitized.bloodGroup !== 'undefined' ? { bloodGroup: sanitized.bloodGroup } : {}),
         ...(typeof sanitized.admissionDate !== 'undefined'
           ? { admissionDate: this.toDate(sanitized.admissionDate) }
           : {}),
         ...(typeof sanitized.phone !== 'undefined' ? { phone: sanitized.phone } : {}),
         ...(typeof sanitized.email !== 'undefined' ? { email: sanitized.email } : {}),
+        ...(typeof sanitized.identityNumber !== 'undefined' ? { identityNumber: sanitized.identityNumber } : {}),
         ...(typeof sanitized.addressLine1 !== 'undefined' ? { addressLine1: sanitized.addressLine1 } : {}),
         ...(typeof sanitized.addressLine2 !== 'undefined' ? { addressLine2: sanitized.addressLine2 } : {}),
         ...(typeof sanitized.city !== 'undefined' ? { city: sanitized.city } : {}),
@@ -259,7 +278,9 @@ export class StudentService {
         ...(typeof sanitized.isNeedy !== 'undefined' ? { isNeedy: sanitized.isNeedy } : {}),
         ...(typeof sanitized.currentProgram !== 'undefined' ? { currentProgram: sanitized.currentProgram } : {}),
         ...(typeof sanitized.currentClass !== 'undefined' ? { currentClass: sanitized.currentClass } : {}),
+        ...(typeof sanitized.currentSection !== 'undefined' ? { currentSection: sanitized.currentSection } : {}),
         ...(typeof sanitized.leadSource !== 'undefined' ? { leadSource: sanitized.leadSource } : {}),
+        ...(typeof sanitized.photoUrl !== 'undefined' ? { photoUrl: sanitized.photoUrl } : {}),
         ...(typeof sanitized.notes !== 'undefined' ? { notes: sanitized.notes } : {}),
       };
 
@@ -286,7 +307,7 @@ export class StudentService {
       );
 
       return refreshedStudent;
-    });
+    }, { maxWait: 15000, timeout: 30000 });
 
     await this.statsService.clearCache(tenantId);
     return updatedStudent;
@@ -298,9 +319,10 @@ export class StudentService {
     id: string,
     input: ChangeStudentStatusInput
   ) {
-    return this.prisma.$transaction(async (tx) => {
-      const repository = new StudentRepository(tx);
-      const auditService = new StudentAuditService(tx);
+    return this.prisma.$transaction(
+      async (tx) => {
+        const repository = new StudentRepository(tx);
+        const auditService = new StudentAuditService(tx);
       const student = await repository.findStudentBaseById(tenantId, id);
 
       if (!student) {
@@ -338,7 +360,9 @@ export class StudentService {
       }
 
       return updatedStudent;
-    });
+    },
+    { maxWait: 35000, timeout: 30000 }
+    );
   }
 
   async addGuardian(tenantId: string, actorUserId: string, studentId: string, guardian: GuardianInput) {
@@ -506,6 +530,11 @@ export class StudentService {
     return sponsor;
   }
 
+  async listSponsors(tenantId: string) {
+    const repository = new StudentRepository(this.prisma);
+    return repository.listSponsors(tenantId);
+  }
+
   async mapSponsor(tenantId: string, actorUserId: string, studentId: string, mapping: SponsorMappingInput) {
     const sanitized = this.sanitizePayload(mapping) as SponsorMappingInput;
 
@@ -597,6 +626,63 @@ export class StudentService {
         mapping.id,
         'STUDENT_SPONSOR_UNLINKED',
         mapping
+      );
+    });
+  }
+
+  async addDocument(tenantId: string, actorUserId: string, studentId: string, input: { documentUrl: string; documentType: string; title?: string; notes?: string }) {
+    const sanitized = this.sanitizePayload(input) as typeof input;
+
+    return this.prisma.$transaction(async (tx) => {
+      const repository = new StudentRepository(tx);
+      const auditService = new StudentAuditService(tx);
+      const student = await repository.findStudentBaseById(tenantId, studentId);
+      if (!student) {
+        throw new AppError('Student not found', 404, 'STUDENT_NOT_FOUND');
+      }
+
+      const createdDocument = await repository.createStudentDocument({
+        tenantId,
+        studentId,
+        documentUrl: sanitized.documentUrl,
+        documentType: sanitized.documentType as any,
+        title: sanitized.title,
+        notes: sanitized.notes,
+      });
+
+      await auditService.logAudit(
+        tenantId,
+        actorUserId,
+        'StudentDocument',
+        createdDocument.id,
+        'STUDENT_DOCUMENT_CREATED',
+        undefined,
+        createdDocument
+      );
+
+      return createdDocument;
+    });
+  }
+
+  async deleteDocument(tenantId: string, actorUserId: string, studentId: string, documentId: string) {
+    return this.prisma.$transaction(async (tx) => {
+      const repository = new StudentRepository(tx);
+      const auditService = new StudentAuditService(tx);
+      
+      const document = await repository.findStudentDocumentById(tenantId, documentId);
+      if (!document || document.studentId !== studentId) {
+        throw new AppError('Document not found', 404, 'DOCUMENT_NOT_FOUND');
+      }
+
+      await repository.softDeleteStudentDocument(documentId);
+      
+      await auditService.logAudit(
+        tenantId,
+        actorUserId,
+        'StudentDocument',
+        documentId,
+        'STUDENT_DOCUMENT_DELETED',
+        document
       );
     });
   }
